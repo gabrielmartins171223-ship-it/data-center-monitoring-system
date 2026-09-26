@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#101513">
+	<title>Pulse | Monitoramento do Data Center</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="./styles.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+	<script src="./app.js" defer></script>
+</head>
+<body data-view="overview">
+	<div class="shell">
+		<aside class="sidebar" aria-label="Navegacao principal">
+			<div class="brand"><span class="brand-mark">⌁</span><span>pulse<small>INFRASTRUCTURE</small></span></div>
+			<nav>
+				<div class="nav-label">Monitoramento</div>
+				<a class="nav-link active" href="#overview"><span class="nav-icon">◫</span>Visao geral</a>
+				<a class="nav-link" href="#servers"><span class="nav-icon">▤</span>Servidores</a>
+				<a class="nav-link" href="#storage"><span class="nav-icon">▱</span>Armazenamento</a>
+				<a class="nav-link" href="#alerts"><span class="nav-icon">⌁</span>Alertas<span class="nav-count">04</span></a>
+			</nav>
+			<div class="site-card"><div class="eyebrow">DATA CENTER</div><div class="site-name"><span class="site-dot"></span>DC Sao Paulo 01</div><div class="site-meta">Zona sul · Brasil</div></div>
+		</aside>
+
+		<main id="overview">
+			<header class="topbar">
+				<div class="breadcrumb">Infraestrutura <span> / </span> <strong id="currentBreadcrumb">Visao geral</strong></div>
+				<div class="top-actions"><div class="live-pill"><span class="status-dot"></span>SISTEMA OPERACIONAL</div><a class="topbar-alert-link" href="#alerts" aria-label="Abrir alertas: 4 ativos"><span class="nav-icon">⌁</span>Alertas<span class="nav-count">04</span></a><button class="icon-button" id="notificationsButton" aria-label="Abrir notificacoes" title="Notificacoes" aria-haspopup="dialog" aria-controls="notificationsDialog">♧<span class="badge"></span></button><div class="avatar" aria-label="Usuario admin">AD</div></div>
+			</header>
+
+			<section class="page-heading">
+				<div><div class="overline">PAINEL DE CONTROLE / DC-SP01</div><h1 id="currentTitle">Visao geral</h1><p class="subtitle" id="currentSubtitle">Acompanhe a saude e o desempenho da sua infraestrutura.</p></div>
+				<div class="heading-meta"><span class="status-dot"></span><span>ULTIMA ATUALIZACAO</span><span id="updatedAt">agora mesmo</span></div>
+			</section>
+
+			<section class="metrics" aria-label="Indicadores principais">
+				<article class="metric"><div class="metric-top"><span>Uso de CPU</span><span class="metric-symbol">◉</span></div><div class="metric-value">68<span class="metric-unit">%</span></div><div class="metric-foot"><span class="trend">↘ 4,2%</span> vs. ultima hora</div></article>
+				<article class="metric"><div class="metric-top"><span>Servidores online</span><span class="metric-symbol">▤</span></div><div class="metric-value online-count">24<span class="metric-unit">/ 28</span></div><div class="metric-foot"><span class="trend">●</span> Todos os sistemas ativos</div></article>
+				<article class="metric"><div class="metric-top"><span>Servidores offline</span><span class="metric-symbol">⊘</span></div><div class="metric-value offline-count">04</div><div class="metric-foot"><span class="trend bad">↑ 2</span> requerem atencao</div></article>
+				<article class="metric"><div class="metric-top"><span>Alertas ativos</span><span class="metric-symbol">⌁</span></div><div class="metric-value">04</div><div class="metric-foot"><span class="trend warn">02 criticos</span> em monitoramento</div></article>
+				<article class="metric"><div class="metric-top"><span>Uso de memoria RAM</span><span class="metric-symbol">▥</span></div><div class="metric-value">72<span class="metric-unit">%</span></div><div class="metric-foot"><span class="trend warn">115,2 GB</span> de 160 GB</div></article>
+			</section>
+
+			<section id="performance" aria-labelledby="performanceTitle">
+				<div class="section-row"><div><h2 class="section-title" id="performanceTitle">Desempenho da infraestrutura<span class="section-kicker">CPU · MEMORIA RAM</span></h2></div><div class="segmented" role="group" aria-label="Periodo do grafico"><button class="period-btn" data-period="1">1H</button><button class="period-btn active" data-period="6">6H</button><button class="period-btn" data-period="24">24H</button></div></div>
+				<div class="chart-grid">
+					<article class="panel chart-panel resources-panel"><div class="panel-head"><div><h3 class="panel-title">Uso de recursos</h3><div class="panel-subtitle">Utilizacao media em todos os servidores</div></div><div class="legend"><span class="legend-item"><span class="legend-swatch"></span>CPU</span><span class="legend-item"><span class="legend-swatch ram"></span>Memoria RAM</span></div></div><div class="chart-box"><canvas id="performanceChart" aria-label="Grafico de uso de CPU e memoria RAM"></canvas></div></article>
+					<article class="panel chart-panel" id="storage"><div class="panel-head"><div><h3 class="panel-title">Armazenamento em disco</h3><div class="panel-subtitle">Capacidade total do data center</div></div><span class="metric-symbol">▱</span></div><div class="storage-body"><div class="donut-wrap"><canvas id="storageChart" aria-label="Grafico da capacidade de armazenamento"></canvas><div class="donut-center"><strong>64%</strong><span>UTILIZADO</span></div></div><div class="storage-legend"><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Utilizado</span><span class="storage-value">6,4 TB</span></div><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Disponivel</span><span class="storage-value">3,6 TB</span></div><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Capacidade</span><span class="storage-value">10 TB</span></div></div></div></article>
+				</div>
+			</section>
+
+			<section class="lower-grid" id="operational-panels">
+				<article class="panel table-panel" id="servers"><div class="table-heading"><div><h2 class="section-title">Servidores</h2><div class="panel-subtitle">Estado atual dos nos monitorados</div></div><button class="view-all" data-dialog="serversDialog" aria-haspopup="dialog" aria-controls="serversDialog">VER TODOS →</button></div><table><thead><tr><th>Servidor</th><th>Status</th><th>CPU</th><th>Memoria</th><th>Disco</th></tr></thead><tbody>
+					<tr><td><span class="server-name"><span class="status-dot"></span>srv-prod-01</span></td><td>Online</td><td><span class="usage"><span class="usage-track"><span class="usage-fill" style="width:42%"></span></span><span class="mono">42%</span></span></td><td class="mono">68%</td><td class="mono">54%</td></tr>
+					<tr><td><span class="server-name"><span class="status-dot"></span>srv-prod-02</span></td><td>Online</td><td><span class="usage"><span class="usage-track"><span class="usage-fill warn" style="width:81%"></span></span><span class="mono">81%</span></span></td><td class="mono">84%</td><td class="mono">71%</td></tr>
+					<tr><td><span class="server-name"><span class="status-dot"></span>srv-db-01</span></td><td>Online</td><td><span class="usage"><span class="usage-track"><span class="usage-fill" style="width:56%"></span></span><span class="mono">56%</span></span></td><td class="mono">72%</td><td class="mono">63%</td></tr>
+					<tr><td><span class="server-name"><span class="status-dot warning"></span>srv-backup-01</span></td><td>Instavel</td><td><span class="usage"><span class="usage-track"><span class="usage-fill bad" style="width:96%"></span></span><span class="mono">96%</span></span></td><td class="mono">91%</td><td class="mono">88%</td></tr>
+				</tbody></table></article>
+				<article class="panel alerts-panel" id="alerts"><div class="table-heading"><div><h2 class="section-title">Alertas recentes</h2><div class="panel-subtitle">Eventos que precisam de atencao</div></div><button class="view-all" data-dialog="alertsDialog" aria-haspopup="dialog" aria-controls="alertsDialog">04 ATIVOS</button></div><div class="alert-list">
+					<div class="alert"><span class="alert-icon critical">!</span><div><div class="alert-title">Servidor offline</div><div class="alert-detail">srv-app-04 nao responde ao ping</div></div><span class="alert-time">2 min</span></div>
+					<div class="alert"><span class="alert-icon warning">△</span><div><div class="alert-title">CPU acima do limite</div><div class="alert-detail">srv-backup-01 atingiu 96% de uso</div></div><span class="alert-time">8 min</span></div>
+					<div class="alert"><span class="alert-icon critical">!</span><div><div class="alert-title">Memoria critica</div><div class="alert-detail">srv-prod-02 ultrapassou 80%</div></div><span class="alert-time">14 min</span></div>
+					<div class="alert"><span class="alert-icon resolved">✓</span><div><div class="alert-title">Servidor recuperado</div><div class="alert-detail">srv-api-03 voltou ao funcionamento normal</div></div><span class="alert-time">32 min</span></div>
+				</div></article>
+			</section>
+			<footer class="footer-note"><span>PULSE MONITORING · DC-SP01</span><span>ATUALIZACAO AUTOMATICA A CADA 30S</span></footer>
+		</main>
+	</div>
+	<dialog id="notificationsDialog" aria-labelledby="notificationsTitle">
+		<div class="dialog-header"><div><h2 id="notificationsTitle">Notificacoes</h2><p>Eventos recentes da infraestrutura</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar notificacoes">×</button></div>
+		<div class="dialog-content"><div class="dialog-list">
+			<div class="dialog-alert"><span class="alert-icon critical">!</span><div><div class="alert-title">Servidor offline</div><div class="alert-detail">srv-app-04 nao responde ao ping</div></div><span class="alert-time">2 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon warning">△</span><div><div class="alert-title">CPU acima do limite</div><div class="alert-detail">srv-backup-01 atingiu 96% de uso</div></div><span class="alert-time">8 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon critical">!</span><div><div class="alert-title">Memoria critica</div><div class="alert-detail">srv-prod-02 ultrapassou 80%</div></div><span class="alert-time">14 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon warning">△</span><div><div class="alert-title">Disco proximo do limite</div><div class="alert-detail">srv-db-02 atingiu 85% de armazenamento</div></div><span class="alert-time">21 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon resolved">✓</span><div><div class="alert-title">Servidor recuperado</div><div class="alert-detail">srv-api-03 voltou ao funcionamento normal</div></div><span class="alert-time">32 min</span></div>
+		</div><p class="dialog-note">Clique em Alertas no menu para ver o painel completo.</p></div>
+	</dialog>
+	<dialog id="serversDialog" aria-labelledby="serversDialogTitle">
+		<div class="dialog-header"><div><h2 id="serversDialogTitle">Inventario de servidores</h2><p>28 servidores monitorados · DC Sao Paulo 01</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar inventario">×</button></div>
+		<div class="dialog-content"><div class="dialog-list" id="allServersList"></div></div>
+	</dialog>
+	<dialog id="alertsDialog" aria-labelledby="alertsDialogTitle">
+		<div class="dialog-header"><div><h2 id="alertsDialogTitle">Alertas ativos</h2><p>4 eventos aguardam atencao</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar alertas">×</button></div>
+		<div class="dialog-content"><div class="dialog-list">
+			<div class="dialog-alert"><span class="alert-icon critical">!</span><div><div class="alert-title">Servidor offline</div><div class="alert-detail">srv-app-04 nao responde ao ping</div></div><span class="alert-time">2 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon warning">△</span><div><div class="alert-title">CPU acima do limite</div><div class="alert-detail">srv-backup-01 atingiu 96% de uso</div></div><span class="alert-time">8 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon critical">!</span><div><div class="alert-title">Memoria critica</div><div class="alert-detail">srv-prod-02 ultrapassou 80%</div></div><span class="alert-time">14 min</span></div>
+			<div class="dialog-alert"><span class="alert-icon warning">△</span><div><div class="alert-title">Disco proximo do limite</div><div class="alert-detail">srv-db-02 atingiu 85% de armazenamento</div></div><span class="alert-time">21 min</span></div>
+		</div></div>
+	</dialog>
+</body>
+</html>
