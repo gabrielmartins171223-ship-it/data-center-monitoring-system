@@ -64,6 +64,11 @@ document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('c
 	if (event.target === dialog) dialog.close();
 }));
 const navigationLinks = document.querySelectorAll('.nav-link, .topbar-alert-link');
+document.querySelectorAll('.pulse-nav .nav-link').forEach(link => link.addEventListener('click', () => {
+	if (window.matchMedia('(max-width: 991.98px)').matches) {
+		bootstrap.Collapse.getOrCreateInstance(document.getElementById('primaryNavigation')).hide();
+	}
+}));
 const pageViews = {
 	overview: { title: 'Visao geral', subtitle: 'Acompanhe a saude e o desempenho da sua infraestrutura.' },
 	servers: { title: 'Servidores', subtitle: 'Estado e uso dos nos monitorados.' },

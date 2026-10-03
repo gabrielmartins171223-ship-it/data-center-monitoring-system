@@ -6,11 +6,12 @@ Dashboard responsivo para acompanhar CPU, memória RAM, servidores, armazenament
 
 - `index.html`: estrutura e conteúdo da página.
 - `styles.css`: estilos visuais e regras responsivas para computador e celular.
-- `app.js`: gráficos Chart.js, navegação, filtros e interações dos botões. O projeto usa JavaScript no navegador; não contém código Java.
-- `.github/workflows/pages.yml`: publicação automática no GitHub Pages.
+- `app.js`: gráficos Chart.js, navegação entre telas, atualização do menu e interações dos botões. O projeto usa JavaScript no navegador; não contém código Java.
 
 ## Navegação e telas
 
+- A barra de navegação usa Bootstrap 5.3.8: os links ficam alinhados na horizontal em telas grandes e o menu pode ser aberto pelo botão em telas menores.
+- No celular, selecionar uma seção fecha o menu e mantém a navegação por endereço (`#overview`, `#servers`, `#storage` e `#alerts`).
 - O cabeçalho mostra o caminho da página, o estado operacional, o atalho para os alertas ativos e o botão de notificações.
 - A **Visão geral** reúne indicadores, gráficos, tabela de servidores e alertas.
 - As opções **Servidores**, **Armazenamento** e **Alertas** exibem somente o painel selecionado.
@@ -19,15 +20,14 @@ Dashboard responsivo para acompanhar CPU, memória RAM, servidores, armazenament
 
 ## Executar localmente
 
-Abra `index.html` em um navegador. Os gráficos usam Chart.js por CDN, portanto precisam de conexão com a internet.
+Abra `index.html` em um navegador. Bootstrap e Chart.js são carregados por CDN e precisam de conexão com a internet.
+
+## Versão publicada
+
+Acesse o dashboard no [GitHub Pages](https://gabrielmartins171223-ship-it.github.io/data-center-monitoring-system/#overview).
 
 ## Publicar no GitHub Pages
 
-O workflow em `.github/workflows/pages.yml` publica o site automaticamente quando houver um push para a branch `main`.
-
-1. Crie o repositório público `data-center-monitoring-system` no GitHub.
-2. Envie o conteúdo desta pasta para a branch `main`.
-3. Em **Settings > Pages**, escolha **GitHub Actions** como fonte de publicação.
-4. Acompanhe a execução em **Actions**. Quando concluir, o site ficará disponível em `https://SEU-USUARIO.github.io/data-center-monitoring-system/`.
+O endereço publicado está na seção acima. Para publicar alterações, envie-as para o GitHub e confira em **Settings > Pages** qual branch e pasta estão configuradas como origem. Este projeto não contém atualmente um workflow de publicação em `.github/workflows`.
 
 Os valores exibidos são demonstrativos e não estão conectados a servidores reais.
