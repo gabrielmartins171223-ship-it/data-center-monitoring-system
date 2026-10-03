@@ -10,8 +10,8 @@ Dashboard responsivo para acompanhar CPU, memória RAM, servidores, armazenament
 
 ## Navegação e telas
 
-- A barra de navegação usa Bootstrap 5.3.8: os links ficam alinhados na horizontal em telas grandes e o menu pode ser aberto pelo botão em telas menores.
-- No celular, selecionar uma seção fecha o menu e mantém a navegação por endereço (`#overview`, `#servers`, `#storage` e `#alerts`).
+- A navegação usa uma sidebar vertical fixa no computador e um drawer lateral Bootstrap 5.3.8 em telas menores.
+- No celular, o botão no cabeçalho abre o menu; selecionar uma seção fecha o drawer e atualiza o endereço (`#overview`, `#servers`, `#storage` ou `#alerts`).
 - O cabeçalho mostra o caminho da página, o estado operacional, o atalho para os alertas ativos e o botão de notificações.
 - A **Visão geral** reúne indicadores, gráficos, tabela de servidores e alertas.
 - As opções **Servidores**, **Armazenamento** e **Alertas** exibem somente o painel selecionado.

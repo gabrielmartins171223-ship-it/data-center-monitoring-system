@@ -63,10 +63,10 @@ document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEve
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => {
 	if (event.target === dialog) dialog.close();
 }));
-const navigationLinks = document.querySelectorAll('.nav-link, .topbar-alert-link');
-document.querySelectorAll('.pulse-nav .nav-link').forEach(link => link.addEventListener('click', () => {
+const navigationLinks = document.querySelectorAll('.sidebar-link, .topbar-alert-link');
+document.querySelectorAll('.sidebar-link').forEach(link => link.addEventListener('click', () => {
 	if (window.matchMedia('(max-width: 991.98px)').matches) {
-		bootstrap.Collapse.getOrCreateInstance(document.getElementById('primaryNavigation')).hide();
+		bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('primarySidebar')).hide();
 	}
 }));
 const pageViews = {

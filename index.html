@@ -9,34 +9,36 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="./styles.css?v=3">
+	<link rel="stylesheet" href="./styles.css?v=4">
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
-	<script src="./app.js?v=2" defer></script>
+	<script src="./app.js?v=3" defer></script>
 </head>
 <body data-view="overview">
 	<div class="shell">
-		<nav class="navbar navbar-expand-lg navbar-dark pulse-navbar" aria-label="Navegacao principal">
-			<div class="container-fluid">
-				<a class="navbar-brand brand" href="#overview"><span class="brand-mark">⌁</span><span>pulse<small>INFRASTRUCTURE</small></span></a>
-				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#primaryNavigation" aria-controls="primaryNavigation" aria-expanded="false" aria-label="Abrir ou fechar menu">
-					<span class="menu-toggle-icon" aria-hidden="true"></span>
-				</button>
-				<div class="collapse navbar-collapse" id="primaryNavigation">
-					<div class="navbar-nav pulse-nav">
-						<a class="nav-link active" href="#overview" aria-current="page"><span class="nav-icon">◫</span>Visao geral</a>
-						<a class="nav-link" href="#servers"><span class="nav-icon">▤</span>Servidores</a>
-						<a class="nav-link" href="#storage"><span class="nav-icon">▱</span>Armazenamento</a>
-						<a class="nav-link" href="#alerts"><span class="nav-icon">⌁</span>Alertas<span class="nav-count">04</span></a>
-					</div>
-					<div class="navbar-site"><span class="site-dot"></span><span><strong>DC Sao Paulo 01</strong><small>Zona sul · Brasil</small></span></div>
+		<aside class="offcanvas-lg offcanvas-start pulse-sidebar" tabindex="-1" id="primarySidebar" aria-labelledby="sidebarTitle">
+			<div class="sidebar-inner">
+				<div class="sidebar-head">
+					<a class="brand" id="sidebarTitle" href="#overview"><span class="brand-mark">⌁</span><span>pulse<small>INFRASTRUCTURE</small></span></a>
+					<button class="sidebar-close" type="button" data-bs-dismiss="offcanvas" data-bs-target="#primarySidebar" aria-label="Fechar menu">×</button>
 				</div>
+				<nav class="sidebar-nav" aria-label="Navegacao principal">
+					<div class="nav-label">Monitoramento</div>
+					<a class="sidebar-link active" href="#overview" aria-current="page"><span class="nav-icon">◫</span>Visao geral</a>
+					<a class="sidebar-link" href="#servers"><span class="nav-icon">▤</span>Servidores</a>
+					<a class="sidebar-link" href="#storage"><span class="nav-icon">▱</span>Armazenamento</a>
+					<a class="sidebar-link" href="#alerts"><span class="nav-icon">⌁</span>Alertas<span class="nav-count">04</span></a>
+				</nav>
+				<div class="site-card"><div class="eyebrow">DATA CENTER</div><div class="site-name"><span class="site-dot"></span>DC Sao Paulo 01</div><div class="site-meta">Zona sul · Brasil</div></div>
 			</div>
-		</nav>
+		</aside>
 
 		<main id="overview">
 			<header class="topbar">
-				<div class="breadcrumb">Infraestrutura <span> / </span> <strong id="currentBreadcrumb">Visao geral</strong></div>
+				<div class="topbar-context">
+					<button class="sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#primarySidebar" aria-controls="primarySidebar" aria-label="Abrir menu de navegacao"><span class="menu-toggle-icon" aria-hidden="true"></span></button>
+					<div class="breadcrumb">Infraestrutura <span> / </span> <strong id="currentBreadcrumb">Visao geral</strong></div>
+				</div>
 				<div class="top-actions"><div class="live-pill"><span class="status-dot"></span>SISTEMA OPERACIONAL</div><a class="topbar-alert-link" href="#alerts" aria-label="Abrir alertas: 4 ativos"><span class="nav-icon">⌁</span>Alertas<span class="nav-count">04</span></a><button class="icon-button" id="notificationsButton" aria-label="Abrir notificacoes" title="Notificacoes" aria-haspopup="dialog" aria-controls="notificationsDialog">♧<span class="badge"></span></button><div class="avatar" aria-label="Usuario admin">AD</div></div>
 			</header>
 
