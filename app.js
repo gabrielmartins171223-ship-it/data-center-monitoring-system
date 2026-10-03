@@ -64,6 +64,14 @@ document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('c
 	if (event.target === dialog) dialog.close();
 }));
 const navigationLinks = document.querySelectorAll('.sidebar-link, .topbar-alert-link');
+const sidebarCollapseToggle = document.getElementById('sidebarCollapseToggle');
+sidebarCollapseToggle.addEventListener('click', () => {
+	const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+	const label = isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral';
+	sidebarCollapseToggle.setAttribute('aria-pressed', String(isCollapsed));
+	sidebarCollapseToggle.setAttribute('aria-label', label);
+	sidebarCollapseToggle.title = label;
+});
 document.querySelectorAll('.sidebar-link').forEach(link => link.addEventListener('click', () => {
 	if (window.matchMedia('(max-width: 991.98px)').matches) {
 		bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('primarySidebar')).hide();
