@@ -9,10 +9,10 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="./styles.css?v=5">
+	<link rel="stylesheet" href="./styles.css?v=6">
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
-	<script src="./app.js?v=4" defer></script>
+	<script src="./app.js?v=5" defer></script>
 </head>
 <body data-view="overview">
 	<div class="shell">
@@ -60,7 +60,7 @@
 				<div class="section-row"><div><h2 class="section-title" id="performanceTitle">Desempenho da infraestrutura<span class="section-kicker">CPU · MEMORIA RAM</span></h2></div><div class="segmented" role="group" aria-label="Periodo do grafico"><button class="period-btn" data-period="1">1H</button><button class="period-btn active" data-period="6">6H</button><button class="period-btn" data-period="24">24H</button></div></div>
 				<div class="chart-grid">
 					<article class="panel chart-panel resources-panel"><div class="panel-head"><div><h3 class="panel-title">Uso de recursos</h3><div class="panel-subtitle">Utilizacao media em todos os servidores</div></div><div class="legend"><span class="legend-item"><span class="legend-swatch"></span>CPU</span><span class="legend-item"><span class="legend-swatch ram"></span>Memoria RAM</span></div></div><div class="chart-box"><canvas id="performanceChart" aria-label="Grafico de uso de CPU e memoria RAM"></canvas></div></article>
-					<article class="panel chart-panel" id="storage"><div class="panel-head"><div><h3 class="panel-title">Armazenamento em disco</h3><div class="panel-subtitle">Capacidade total do data center</div></div><span class="metric-symbol">▱</span></div><div class="storage-body"><div class="donut-wrap"><canvas id="storageChart" aria-label="Grafico da capacidade de armazenamento"></canvas><div class="donut-center"><strong>64%</strong><span>UTILIZADO</span></div></div><div class="storage-legend"><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Utilizado</span><span class="storage-value">6,4 TB</span></div><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Disponivel</span><span class="storage-value">3,6 TB</span></div><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Capacidade</span><span class="storage-value">10 TB</span></div></div></div></article>
+					<article class="panel chart-panel" id="storage" data-storage-status="normal"><div class="panel-head"><div><h3 class="panel-title">Armazenamento em disco</h3><div class="panel-subtitle">Capacidade total do data center</div></div><div class="storage-card-icons"><span class="storage-alert" id="storageAlert" role="img" aria-label="Alerta de armazenamento" title="Alerta de armazenamento" hidden>!</span><span class="metric-symbol">▱</span></div></div><div class="storage-body"><div class="donut-wrap"><canvas id="storageChart" aria-label="Grafico da capacidade de armazenamento"></canvas><div class="donut-center"><strong id="storagePercentage">64%</strong><span>UTILIZADO</span><small class="storage-status" id="storageStatus" role="status">Normal</small></div></div><div class="storage-legend"><div class="storage-item"><span class="legend-swatch storage-used-swatch"></span><span class="storage-label">Utilizado</span><span class="storage-value" id="storageUsed">6,4 TB</span></div><div class="storage-item"><span class="legend-swatch storage-available-swatch"></span><span class="storage-label">Disponivel</span><span class="storage-value" id="storageAvailable">3,6 TB</span></div><div class="storage-item"><span class="legend-swatch"></span><span class="storage-label">Capacidade</span><span class="storage-value" id="storageCapacity">10 TB</span></div></div></div></article>
 				</div>
 			</section>
 

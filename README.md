@@ -6,7 +6,7 @@ Dashboard responsivo para acompanhar CPU, memória RAM, servidores, armazenament
 
 - `index.html`: estrutura e conteúdo da página.
 - `styles.css`: estilos visuais e regras responsivas para computador e celular.
-- `app.js`: gráficos Chart.js, navegação entre telas, atualização do menu e interações dos botões. O projeto usa JavaScript no navegador; não contém código Java.
+- `app.js`: gráficos Chart.js, navegação entre telas, atualização do menu e interações dos botões. Também atualiza o indicador de armazenamento. O projeto usa JavaScript no navegador; não contém código Java.
 
 ## Navegação e telas
 
@@ -17,6 +17,7 @@ Dashboard responsivo para acompanhar CPU, memória RAM, servidores, armazenament
 - As opções **Servidores**, **Armazenamento** e **Alertas** exibem somente o painel selecionado.
 - No celular, a Visão geral mantém os mesmos indicadores e painéis do computador, reorganizados em coluna para caber na tela.
 - Os alertas usam vermelho para situações críticas, amarelo para avisos e verde para eventos resolvidos.
+- O armazenamento muda para amarelo a partir de 70% de ocupação e vermelho a partir de 85%.
 
 ## Executar localmente
 
@@ -28,6 +29,6 @@ Acesse o dashboard no [GitHub Pages](https://gabrielmartins171223-ship-it.github
 
 ## Publicar no GitHub Pages
 
-O endereço publicado está na seção acima. Para publicar alterações, envie-as para o GitHub e confira em **Settings > Pages** qual branch e pasta estão configuradas como origem. Este projeto não contém atualmente um workflow de publicação em `.github/workflows`.
+O workflow [pages.yml](https://github.com/gabrielmartins171223-ship-it/data-center-monitoring-system/blob/main/.github/workflows/pages.yml) publica os arquivos da raiz do repositório quando há um push para `main`. Também é possível executá-lo manualmente na aba **Actions** do GitHub.
 
-Os valores exibidos são demonstrativos e não estão conectados a servidores reais.
+Os valores exibidos são demonstrativos e não estão conectados a servidores reais. `window.updateStorageUsage(ocupadoTB, capacidadeTotalTB)` atualiza o gráfico, os valores, as cores e o alerta de armazenamento; a função rejeita valores inválidos.

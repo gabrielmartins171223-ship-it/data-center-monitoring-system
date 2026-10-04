@@ -18,11 +18,41 @@ const performanceChart = new Chart(performanceCanvas, {
 	] },
 	options: { maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#222c26', borderColor: '#39463d', borderWidth: 1, titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 10 }, padding: 10, callbacks: { label: context => ` ${context.dataset.label}: ${context.parsed.y}%` } } }, scales: { x: { grid: { display: false }, border: { display: false }, ticks: { color: chartColors.muted, font: { family: 'DM Mono', size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } }, y: { min: 0, max: 100, border: { display: false, dash: [3, 4] }, grid: { color: chartColors.grid, drawTicks: false }, ticks: { stepSize: 25, padding: 9, color: chartColors.muted, font: { family: 'DM Mono', size: 9 }, callback: value => `${value}%` } } } }
 });
-new Chart(document.getElementById('storageChart'), {
+const storageChart = new Chart(document.getElementById('storageChart'), {
 	type: 'doughnut',
 	data: { labels: ['Utilizado', 'Disponivel'], datasets: [{ data: [64, 36], backgroundColor: [chartColors.green, '#344139'], borderWidth: 0, hoverOffset: 3, spacing: 3, borderRadius: 3 }] },
 	options: { responsive: true, maintainAspectRatio: false, cutout: '82%', plugins: { legend: { display: false }, tooltip: { backgroundColor: '#222c26', borderColor: '#39463d', borderWidth: 1, titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 10 }, callbacks: { label: context => ` ${context.label}: ${context.raw}%` } } } }
 });
+const updateStorageUsage = (usedCapacity, totalCapacity) => {
+	if (!Number.isFinite(usedCapacity) || !Number.isFinite(totalCapacity) || usedCapacity < 0 || totalCapacity <= 0 || usedCapacity > totalCapacity) {
+		throw new RangeError('A ocupacao deve estar entre zero e a capacidade total, que precisa ser maior que zero.');
+	}
+
+	const usagePercent = (usedCapacity / totalCapacity) * 100;
+	const storageStatus = usagePercent >= 85
+		? { level: 'critical', color: '#f17b72', label: 'Critico: 85% ou mais' }
+		: usagePercent >= 70
+			? { level: 'warning', color: '#f2bb65', label: 'Atencao: 70% ou mais' }
+			: { level: 'normal', color: chartColors.green, label: 'Normal' };
+	const formatCapacity = value => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} TB`;
+	const storageCard = document.getElementById('storage');
+	const storageAlert = document.getElementById('storageAlert');
+
+	storageCard.dataset.storageStatus = storageStatus.level;
+	storageAlert.hidden = storageStatus.level === 'normal';
+	storageAlert.setAttribute('aria-label', storageStatus.label);
+	storageAlert.title = storageStatus.label;
+	document.getElementById('storagePercentage').textContent = `${usagePercent.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+	document.getElementById('storageStatus').textContent = storageStatus.label;
+	document.getElementById('storageUsed').textContent = formatCapacity(usedCapacity);
+	document.getElementById('storageAvailable').textContent = formatCapacity(totalCapacity - usedCapacity);
+	document.getElementById('storageCapacity').textContent = formatCapacity(totalCapacity);
+	storageChart.data.datasets[0].data = [usagePercent, 100 - usagePercent];
+	storageChart.data.datasets[0].backgroundColor = [storageStatus.color, '#344139'];
+	storageChart.update();
+};
+window.updateStorageUsage = updateStorageUsage;
+updateStorageUsage(6.4, 10);
 document.querySelectorAll('.period-btn').forEach(button => button.addEventListener('click', () => {
 	const period = button.dataset.period;
 	document.querySelectorAll('.period-btn').forEach(item => item.classList.toggle('active', item === button));
