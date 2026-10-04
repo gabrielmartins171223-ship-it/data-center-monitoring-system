@@ -76,13 +76,14 @@ const offlineServers = ['srv-app-04', 'srv-app-05', 'srv-cache-02', 'srv-worker-
 const serverList = document.getElementById('allServersList');
 const serverHeader = document.createElement('div');
 serverHeader.className = 'dialog-server header';
-serverHeader.innerHTML = '<span>Servidor</span><span>Status</span><span>CPU</span><span>RAM</span><span>Disco</span>';
+serverHeader.innerHTML = '<span><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidor</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg>Status</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg>CPU</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg>RAM</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg>Disco</span>';
 serverList.append(serverHeader);
 [...onlineServers, ...offlineServers].forEach(server => {
 	const row = document.createElement('div');
 	row.className = 'dialog-server';
 	const statusClass = server.status === 'Offline' ? 'offline' : server.status === 'Instavel' ? 'warning' : '';
-	row.innerHTML = `<span class="server-name"><span class="status-dot ${statusClass}"></span>${server.name}</span><span class="dialog-status">${server.status}</span><span class="mono">${server.cpu}%</span><span class="mono">${server.ram}%</span><span class="mono">${server.disk}%</span>`;
+	const statusIcon = server.status === 'Offline' ? 'icon-server-offline' : server.status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
+	row.innerHTML = `<span class="server-name"><span class="status-dot ${statusClass}"></span>${server.name}</span><span class="dialog-status ${statusClass || 'online'}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${server.status}</span><span class="mono">${server.cpu}%</span><span class="mono">${server.ram}%</span><span class="mono">${server.disk}%</span>`;
 	serverList.append(row);
 });
 document.querySelectorAll('[data-dialog]').forEach(button => button.addEventListener('click', () => {

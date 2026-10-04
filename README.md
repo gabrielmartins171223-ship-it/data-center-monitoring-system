@@ -12,6 +12,7 @@ Dashboard responsivo para acompanhar CPU, memória RAM, servidores, armazenament
 
 - A navegação usa uma sidebar Bootstrap 5.3.8 fixa no computador, com modo compacto acionado pelo botão no cabeçalho da barra, e um drawer lateral em telas menores.
 - No celular, o botão no cabeçalho abre o menu; selecionar uma seção fecha o drawer e atualiza o endereço (`#overview`, `#servers`, `#storage` ou `#alerts`).
+- Ícones SVG consistentes identificam as seções, métricas, gráficos, status dos servidores, alertas e ações nos painéis e diálogos.
 - O cabeçalho mostra o caminho da página, o estado operacional, o atalho para os alertas ativos e o botão de notificações.
 - A **Visão geral** reúne indicadores, gráficos, tabela de servidores e alertas.
 - As opções **Servidores**, **Armazenamento** e **Alertas** exibem somente o painel selecionado.
