@@ -32,4 +32,4 @@ Acesse o dashboard no [GitHub Pages](https://gabrielmartins171223-ship-it.github
 
 O workflow [pages.yml](https://github.com/gabrielmartins171223-ship-it/data-center-monitoring-system/blob/main/.github/workflows/pages.yml) publica os arquivos da raiz do repositório quando há um push para `main`. Também é possível executá-lo manualmente na aba **Actions** do GitHub.
 
-Os valores exibidos são demonstrativos e não estão conectados a servidores reais. `window.updateStorageUsage(ocupadoTB, capacidadeTotalTB)` atualiza o gráfico, os valores, as cores e o alerta de armazenamento; a função rejeita valores inválidos.
+Os valores exibidos são demonstrativos e não estão conectados a servidores reais. Os cenários normal, alerta, crítico e recuperação se alternam automaticamente a cada 30 segundos e atualizam indicadores, gráficos, servidores, alertas e armazenamento. `window.updateStorageUsage(ocupadoTB, capacidadeTotalTB)` atualiza o gráfico, os valores, as cores e o alerta de armazenamento; a função rejeita valores inválidos.
