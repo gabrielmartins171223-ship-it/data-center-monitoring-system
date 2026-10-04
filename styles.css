@@ -134,6 +134,7 @@ h1 { margin: 0; font: 600 27px var(--display); letter-spacing: -.8px; }
 #storage[data-storage-status="critical"] .storage-status { color: var(--red); }
 .storage-card-icons { display: flex; align-items: center; gap: 10px; }
 .storage-alert { color: var(--amber); font: 700 17px var(--mono); }
+.storage-alert svg { display: block; width: 17px; height: 17px; }
 .storage-alert[hidden] { display: none; }
 #storage[data-storage-status="critical"] .storage-alert { color: var(--red); }
 .storage-used-swatch { background: var(--green); }
