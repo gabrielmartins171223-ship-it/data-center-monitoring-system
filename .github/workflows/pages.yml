@@ -24,6 +24,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate JavaScript and monitoring tests
+        run: |
+          node --check app.js
+          node --check monitoring.js
+          node --check tests/monitoring.test.js
+          node tests/monitoring.test.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site artifact

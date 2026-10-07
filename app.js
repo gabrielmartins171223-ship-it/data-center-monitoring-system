@@ -29,8 +29,8 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 	}
 
 	const usagePercent = (usedCapacity / totalCapacity) * 100;
-	const storageStatus = usagePercent >= 85
-		? { level: 'critical', color: '#f17b72', label: 'Critico: 85% ou mais' }
+	const storageStatus = usagePercent > 85
+		? { level: 'critical', color: '#f17b72', label: 'Critico: acima de 85%' }
 		: usagePercent >= 70
 			? { level: 'warning', color: '#f2bb65', label: 'Atencao: 70% ou mais' }
 			: { level: 'normal', color: chartColors.green, label: 'Normal' };
@@ -54,38 +54,26 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 window.updateStorageUsage = updateStorageUsage;
 updateStorageUsage(6.4, 10);
 document.querySelectorAll('.period-btn').forEach(button => button.addEventListener('click', () => {
+	const period = button.dataset.period;
 	document.querySelectorAll('.period-btn').forEach(item => item.classList.toggle('active', item === button));
-	refreshDashboard();
+	performanceChart.data.labels = timeLabels[period];
+	updatePerformanceChart(liveDataActive ? getLiveScenario() : getScenario());
 }));
-const updatedAt = document.getElementById('updatedAt');
-const onlineServers = [
-	{ name: 'srv-prod-01', status: 'Online', cpu: 42, ram: 68, disk: 54 },
-	{ name: 'srv-prod-02', status: 'Online', cpu: 81, ram: 84, disk: 71 },
-	{ name: 'srv-db-01', status: 'Online', cpu: 56, ram: 72, disk: 63 },
-	{ name: 'srv-backup-01', status: 'Instavel', cpu: 96, ram: 91, disk: 88 }
-];
-for (let index = 1; index <= 20; index += 1) {
-	onlineServers.push({ name: `srv-node-${String(index).padStart(2, '0')}`, status: 'Online', cpu: 28 + (index * 13) % 58, ram: 36 + (index * 17) % 52, disk: 31 + (index * 11) % 55 });
-}
-const offlineServers = ['srv-app-04', 'srv-app-05', 'srv-cache-02', 'srv-worker-03'].map(name => ({ name, status: 'Offline', cpu: 0, ram: 0, disk: 0 }));
-const serverList = document.getElementById('allServersList');
-const serverHeader = document.createElement('div');
-serverHeader.className = 'dialog-server header';
-serverHeader.innerHTML = '<span><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidor</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg>Status</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg>CPU</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg>RAM</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg>Disco</span>';
-serverList.append(serverHeader);
-[...onlineServers, ...offlineServers].forEach(server => {
-	const row = document.createElement('div');
-	row.className = 'dialog-server';
-	const statusClass = server.status === 'Offline' ? 'offline' : server.status === 'Instavel' ? 'warning' : '';
-	const statusIcon = server.status === 'Offline' ? 'icon-server-offline' : server.status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
-	row.innerHTML = `<span class="server-name"><span class="status-dot ${statusClass}"></span>${server.name}</span><span class="dialog-status ${statusClass || 'online'}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${server.status}</span><span class="mono">${server.cpu}%</span><span class="mono">${server.ram}%</span><span class="mono">${server.disk}%</span>`;
-	serverList.append(row);
-});
-const dashboardScenarios = [
+const scenarios = [
 	{
-		offline: ['srv-app-04', 'srv-app-05', 'srv-cache-02', 'srv-worker-03'],
-		unstable: ['srv-backup-01'],
-		cpuOffset: 0, ramOffset: 0, diskOffset: 0, storageUsed: 6.4,
+		label: 'normal',
+		cpu: 61,
+		ram: 68,
+		storageUsed: 6.4,
+		storageTotal: 10,
+		servers: [
+			{ name: 'srv-prod-01', status: 'Online', cpu: 42, ram: 68, disk: 54 },
+			{ name: 'srv-prod-02', status: 'Online', cpu: 81, ram: 84, disk: 71 },
+			{ name: 'srv-db-01', status: 'Online', cpu: 56, ram: 72, disk: 63 },
+			{ name: 'srv-backup-01', status: 'Instavel', cpu: 96, ram: 91, disk: 88 },
+			...Array.from({ length: 20 }, (_, index) => ({ name: `srv-node-${String(index + 1).padStart(2, '0')}`, status: 'Online', cpu: 28 + ((index * 13) % 58), ram: 36 + ((index * 17) % 52), disk: 31 + ((index * 11) % 55) })),
+			...['srv-app-04', 'srv-app-05', 'srv-cache-02', 'srv-worker-03'].map(name => ({ name, status: 'Offline', cpu: 0, ram: 0, disk: 0 }))
+		],
 		alerts: [
 			{ level: 'critical', icon: 'icon-server-offline', title: 'Servidor offline', detail: 'srv-app-04 nao responde ao ping', time: '2 min' },
 			{ level: 'warning', icon: 'icon-cpu', title: 'CPU acima do limite', detail: 'srv-backup-01 atingiu 96% de uso', time: '8 min' },
@@ -94,9 +82,19 @@ const dashboardScenarios = [
 		]
 	},
 	{
-		offline: ['srv-app-04', 'srv-app-05', 'srv-cache-02'],
-		unstable: ['srv-prod-02', 'srv-backup-01', 'srv-node-04'],
-		cpuOffset: 10, ramOffset: 7, diskOffset: 4, storageUsed: 7.5,
+		label: 'warning',
+		cpu: 76,
+		ram: 80,
+		storageUsed: 7.5,
+		storageTotal: 10,
+		servers: [
+			{ name: 'srv-prod-01', status: 'Online', cpu: 57, ram: 65, disk: 58 },
+			{ name: 'srv-prod-02', status: 'Instavel', cpu: 88, ram: 82, disk: 74 },
+			{ name: 'srv-db-01', status: 'Online', cpu: 62, ram: 74, disk: 66 },
+			{ name: 'srv-backup-01', status: 'Instavel', cpu: 92, ram: 89, disk: 87 },
+			...Array.from({ length: 20 }, (_, index) => ({ name: `srv-node-${String(index + 1).padStart(2, '0')}`, status: index % 3 === 0 ? 'Instavel' : 'Online', cpu: 31 + ((index * 17) % 63), ram: 38 + ((index * 19) % 48), disk: 33 + ((index * 13) % 52) })),
+			...['srv-app-04', 'srv-app-05', 'srv-cache-02'].map(name => ({ name, status: 'Offline', cpu: 0, ram: 0, disk: 0 }))
+		],
 		alerts: [
 			{ level: 'critical', icon: 'icon-server-offline', title: 'Servidor offline', detail: 'srv-app-04 nao responde ao ping', time: '2 min' },
 			{ level: 'warning', icon: 'icon-cpu', title: 'CPU acima do limite', detail: 'srv-prod-02 atingiu 88% de uso', time: '5 min' },
@@ -105,9 +103,19 @@ const dashboardScenarios = [
 		]
 	},
 	{
-		offline: ['srv-prod-02', 'srv-app-04', 'srv-app-05', 'srv-cache-02', 'srv-worker-03', 'srv-node-01', 'srv-node-05', 'srv-node-09', 'srv-node-13', 'srv-node-17'],
-		unstable: ['srv-prod-01', 'srv-db-01', 'srv-backup-01'],
-		cpuOffset: 18, ramOffset: 18, diskOffset: 13, storageUsed: 8.7,
+		label: 'critical',
+		cpu: 84,
+		ram: 91,
+		storageUsed: 8.7,
+		storageTotal: 10,
+		servers: [
+			{ name: 'srv-prod-01', status: 'Instavel', cpu: 72, ram: 77, disk: 69 },
+			{ name: 'srv-prod-02', status: 'Offline', cpu: 0, ram: 0, disk: 0 },
+			{ name: 'srv-db-01', status: 'Instavel', cpu: 89, ram: 92, disk: 86 },
+			{ name: 'srv-backup-01', status: 'Instavel', cpu: 98, ram: 95, disk: 90 },
+			...Array.from({ length: 20 }, (_, index) => ({ name: `srv-node-${String(index + 1).padStart(2, '0')}`, status: index % 4 === 0 ? 'Offline' : 'Instavel', cpu: 41 + ((index * 19) % 60), ram: 44 + ((index * 23) % 55), disk: 38 + ((index * 17) % 58) })),
+			...['srv-app-04', 'srv-app-05', 'srv-cache-02', 'srv-worker-03'].map(name => ({ name, status: 'Offline', cpu: 0, ram: 0, disk: 0 }))
+		],
 		alerts: [
 			{ level: 'critical', icon: 'icon-server-offline', title: 'Servidor offline', detail: 'srv-prod-02 nao responde ao ping', time: '1 min' },
 			{ level: 'critical', icon: 'icon-memory', title: 'Memoria critica', detail: 'srv-db-01 ultrapassou 90%', time: '3 min' },
@@ -116,9 +124,19 @@ const dashboardScenarios = [
 		]
 	},
 	{
-		offline: ['srv-app-04', 'srv-app-05'],
-		unstable: [],
-		cpuOffset: -4, ramOffset: -6, diskOffset: -8, storageUsed: 5.9,
+		label: 'recovered',
+		cpu: 54,
+		ram: 62,
+		storageUsed: 5.9,
+		storageTotal: 10,
+		servers: [
+			{ name: 'srv-prod-01', status: 'Online', cpu: 46, ram: 63, disk: 49 },
+			{ name: 'srv-prod-02', status: 'Online', cpu: 58, ram: 69, disk: 62 },
+			{ name: 'srv-db-01', status: 'Online', cpu: 51, ram: 64, disk: 57 },
+			{ name: 'srv-backup-01', status: 'Online', cpu: 59, ram: 71, disk: 61 },
+			...Array.from({ length: 20 }, (_, index) => ({ name: `srv-node-${String(index + 1).padStart(2, '0')}`, status: 'Online', cpu: 24 + ((index * 11) % 47), ram: 33 + ((index * 15) % 40), disk: 29 + ((index * 9) % 43) })),
+			...['srv-app-04', 'srv-app-05'].map(name => ({ name, status: 'Offline', cpu: 0, ram: 0, disk: 0 }))
+		],
 		alerts: [
 			{ level: 'resolved', icon: 'icon-check', title: 'Servidor recuperado', detail: 'srv-app-04 voltou ao funcionamento normal', time: '4 min' },
 			{ level: 'resolved', icon: 'icon-check', title: 'Alerta encerrado', detail: 'srv-prod-02 estabilizou a memoria', time: '9 min' },
@@ -127,62 +145,158 @@ const dashboardScenarios = [
 		]
 	}
 ];
-const getDashboardScenario = () => dashboardScenarios[Math.floor(Date.now() / 30000) % dashboardScenarios.length];
-const refreshDashboard = () => {
-	const scenario = getDashboardScenario();
-	const offlineNames = new Set(scenario.offline);
-	const unstableNames = new Set(scenario.unstable);
-	const servers = [...onlineServers, ...offlineServers].map(server => {
-		const offline = offlineNames.has(server.name);
+const getScenario = () => scenarios[Math.floor(Date.now() / 30000) % scenarios.length];
+let liveDataActive = false;
+const monitoringService = new ServerMonitoringService({
+	onAlert: alert => window.dispatchEvent(new CustomEvent('monitoring-alert', { detail: alert }))
+});
+const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
+	'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+})[character]);
+const getLiveScenario = () => {
+	const monitoredServers = monitoringService.getServers();
+	const onlineServers = monitoredServers.filter(server => !server.offline);
+	const average = metric => onlineServers.length
+		? onlineServers.reduce((total, server) => total + server[metric], 0) / onlineServers.length
+		: 0;
+	const alerts = monitoringService.getAlerts().slice(0, 10).map(alert => {
+		const elapsedMinutes = Math.floor((Date.now() - alert.createdAt) / 60000);
 		return {
-			...server,
-			status: offline ? 'Offline' : unstableNames.has(server.name) ? 'Instavel' : 'Online',
-			cpu: offline ? 0 : Math.max(0, Math.min(99, server.cpu + scenario.cpuOffset)),
-			ram: offline ? 0 : Math.max(0, Math.min(99, server.ram + scenario.ramOffset)),
-			disk: offline ? 0 : Math.max(0, Math.min(99, server.disk + scenario.diskOffset))
+			level: alert.level,
+			icon: alert.level === 'resolved' ? 'icon-check' : alert.icon || 'icon-server-offline',
+			title: alert.title,
+			detail: alert.detail,
+			time: elapsedMinutes < 1 ? 'agora' : `${elapsedMinutes} min`
 		};
 	});
-	const activeServers = servers.filter(server => server.status !== 'Offline');
-	const average = key => Math.round(activeServers.reduce((sum, server) => sum + server[key], 0) / activeServers.length);
-	const cpu = average('cpu');
-	const ram = average('ram');
-	const offlineCount = servers.length - activeServers.length;
-	const activeAlerts = scenario.alerts.filter(alert => alert.level !== 'resolved').length;
-	const metricValues = [cpu, activeServers.length, offlineCount, activeAlerts, ram];
-	document.querySelectorAll('.metric-value').forEach((node, index) => {
-		if (index >= metricValues.length) return;
-		const suffix = index === 0 || index === 4 ? '%' : index === 1 ? ' / 28' : '';
-		node.innerHTML = `${metricValues[index]}${suffix ? `<span class="metric-unit">${suffix}</span>` : ''}`;
-	});
-	updateStorageUsage(scenario.storageUsed, 10);
-	updatedAt.textContent = `ATUALIZADO · ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+	return {
+		cpu: average('cpu'),
+		ram: average('memory'),
+		storageUsed: monitoredServers.reduce((total, server) => total + server.diskUsed, 0),
+		storageTotal: monitoredServers.reduce((total, server) => total + server.diskTotal, 0),
+		servers: monitoredServers.map(server => ({
+			name: server.serverId,
+			status: server.offline ? 'Offline' : [server.cpu, server.memory, server.disk].some(value => value > 85) ? 'Instavel' : 'Online',
+			cpu: Math.round(server.cpu),
+			ram: Math.round(server.memory),
+			disk: Math.round(server.disk)
+		})),
+		alerts,
+		activeAlertCount: monitoringService.getActiveAlertCount()
+	};
+};
+const refreshLiveStatus = () => {
+	const pill = document.querySelector('.live-pill');
+	const notice = document.querySelector('.data-notice');
+	if (pill) {
+		pill.classList.remove('demo');
+		pill.lastChild.textContent = 'MONITORAMENTO AO VIVO';
+	}
+	if (notice) notice.textContent = 'Telemetria recebida pela integracao; alertas atualizados em tempo real.';
+};
+window.receiveServerTelemetry = telemetry => {
+	const server = monitoringService.ingest(telemetry);
+	liveDataActive = true;
+	refreshLiveStatus();
+	refreshDashboard();
+	return server;
+};
+const updatePerformanceChart = scenario => {
 	const period = document.querySelector('.period-btn.active')?.dataset.period || '6';
 	performanceChart.data.labels = timeLabels[period];
-	performanceChart.data.datasets[0].data = [...chartData[period].cpu.slice(0, -1), cpu];
-	performanceChart.data.datasets[1].data = [...chartData[period].ram.slice(0, -1), ram];
+	performanceChart.data.datasets[0].data = [...chartData[period].cpu.slice(0, -1), Math.round(scenario.cpu)];
+	performanceChart.data.datasets[1].data = [...chartData[period].ram.slice(0, -1), Math.round(scenario.ram)];
 	performanceChart.update();
-	const statusClass = status => status === 'Offline' ? 'offline' : status === 'Instavel' ? 'warning' : 'online';
-	const statusIcon = status => status === 'Offline' ? 'icon-server-offline' : status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
-	const serverRows = servers.slice(0, 4).map(server => {
-		const usageClass = server.cpu >= 80 ? 'bad' : server.cpu >= 65 ? 'warning' : 'good';
-		return `<tr><td><span class="server-name"><span class="status-dot ${statusClass(server.status) === 'online' ? '' : statusClass(server.status)}"></span>${server.name}</span></td><td><span class="table-status ${statusClass(server.status)}"><svg aria-hidden="true"><use href="#${statusIcon(server.status)}"/></svg>${server.status}</span></td><td><span class="usage"><span class="usage-track"><span class="usage-fill ${usageClass}" style="width:${server.cpu}%"></span></span><span class="mono">${server.cpu}%</span></span></td><td class="mono">${server.ram}%</td><td class="mono">${server.disk}%</td></tr>`;
-	}).join('');
-	document.querySelector('#servers tbody').innerHTML = serverRows;
-	const serverHeaderHtml = '<div class="dialog-server header"><span><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidor</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg>Status</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg>CPU</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg>RAM</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg>Disco</span></div>';
-	const serverDialogRows = servers.map(server => `<div class="dialog-server"><span class="server-name"><span class="status-dot ${statusClass(server.status) === 'online' ? '' : statusClass(server.status)}"></span>${server.name}</span><span class="dialog-status ${statusClass(server.status)}"><svg aria-hidden="true"><use href="#${statusIcon(server.status)}"/></svg>${server.status}</span><span class="mono">${server.cpu}%</span><span class="mono">${server.ram}%</span><span class="mono">${server.disk}%</span></div>`).join('');
-	serverList.innerHTML = `${serverHeaderHtml}${serverDialogRows}`;
-	const alertHtml = scenario.alerts.map(alert => `<div class="alert"><span class="alert-icon ${alert.level}"><svg aria-hidden="true"><use href="#${alert.icon}"/></svg></span><div><div class="alert-title">${alert.title}</div><div class="alert-detail">${alert.detail}</div></div><span class="alert-time"><svg aria-hidden="true"><use href="#icon-clock"/></svg>${alert.time}</span></div>`).join('');
-	document.querySelector('#alerts .alert-list').innerHTML = alertHtml;
-	const dialogAlertHtml = scenario.alerts.map(alert => `<div class="dialog-alert"><span class="alert-icon ${alert.level}"><svg aria-hidden="true"><use href="#${alert.icon}"/></svg></span><div><div class="alert-title">${alert.title}</div><div class="alert-detail">${alert.detail}</div></div><span class="alert-time">${alert.time}</span></div>`).join('');
-	document.querySelector('#notificationsDialog .dialog-list').innerHTML = dialogAlertHtml;
-	document.querySelector('#alertsDialog .dialog-list').innerHTML = dialogAlertHtml;
-	document.querySelector('#alertsDialog .dialog-header p').textContent = `${activeAlerts} eventos aguardam atencao`;
-	document.querySelector('#alerts .view-all').textContent = `${String(activeAlerts).padStart(2, '0')} ATIVOS`;
-	document.querySelectorAll('.nav-count').forEach(node => { node.textContent = String(activeAlerts).padStart(2, '0'); });
-	document.querySelectorAll('.topbar-alert-link').forEach(link => link.setAttribute('aria-label', `Abrir alertas: ${activeAlerts} ativos`));
 };
-refreshDashboard();
-setInterval(refreshDashboard, 30000);
+const renderMetric = (index, value, unit = '%') => {
+	const cards = document.querySelectorAll('.metric');
+	const card = cards[index];
+	if (!card) return;
+	const valueNode = card.querySelector('.metric-value');
+	if (!valueNode) return;
+	valueNode.innerHTML = `${value}${unit ? `<span class="metric-unit">${unit}</span>` : ''}`;
+};
+const renderAlertList = (selector, alerts) => {
+	const container = document.querySelector(selector);
+	if (!container) return;
+	container.innerHTML = alerts.map(alert => {
+		const alertClass = alert.level === 'critical' ? 'critical' : alert.level === 'warning' ? 'warning' : 'resolved';
+		return `<div class="alert"><span class="alert-icon ${alertClass}"><svg aria-hidden="true"><use href="#${escapeHtml(alert.icon)}"/></svg></span><div><div class="alert-title">${escapeHtml(alert.title)}</div><div class="alert-detail">${escapeHtml(alert.detail)}</div></div><span class="alert-time"><svg aria-hidden="true"><use href="#icon-clock"/></svg>${escapeHtml(alert.time)}</span></div>`;
+	}).join('');
+};
+const renderDialogAlerts = (alerts, activeCountOverride) => {
+	const activeCount = Number.isInteger(activeCountOverride)
+		? activeCountOverride
+		: alerts.filter(alert => alert.level !== 'resolved').length;
+	const alertCopy = document.querySelector('#alertsDialog .dialog-header p');
+	if (alertCopy) alertCopy.textContent = `${activeCount} eventos aguardam atencao`;
+	const dialogs = ['#notificationsDialog .dialog-list', '#alertsDialog .dialog-list'];
+	dialogs.forEach(selector => renderAlertList(selector, alerts));
+	const topAlertLink = document.querySelector('.topbar-alert-link');
+	if (topAlertLink) {
+		const badge = topAlertLink.querySelector('.nav-count');
+		if (badge) badge.textContent = String(activeCount).padStart(2, '0');
+		topAlertLink.setAttribute('aria-label', `Abrir alertas: ${activeCount} ativos`);
+	}
+	const alertViewButton = document.querySelector('#alerts .view-all');
+	if (alertViewButton) alertViewButton.textContent = `${String(activeCount).padStart(2, '0')} ATIVOS`;
+	const metricsAlert = document.querySelectorAll('.metric')[3]?.querySelector('.metric-value');
+	if (metricsAlert) metricsAlert.textContent = String(activeCount);
+};
+const renderServers = (servers) => {
+	const rows = servers.slice(0, 5).map(server => {
+		const statusClass = server.status === 'Offline' ? 'offline' : server.status === 'Instavel' ? 'warning' : 'online';
+		const statusIcon = server.status === 'Offline' ? 'icon-server-offline' : server.status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
+		const usageClass = server.cpu >= 80 ? 'bad' : server.cpu >= 65 ? 'warning' : 'good';
+		return `<tr><td><span class="server-name"><span class="status-dot ${server.status === 'Offline' ? 'offline' : server.status === 'Instavel' ? 'warning' : ''}"></span>${escapeHtml(server.name)}</span></td><td><span class="table-status ${statusClass}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${escapeHtml(server.status)}</span></td><td><span class="usage"><span class="usage-track"><span class="usage-fill ${usageClass}" style="width:${server.cpu}%"></span></span><span class="mono">${server.cpu}%</span></span></td><td class="mono">${server.ram}%</td><td class="mono">${server.disk}%</td></tr>`;
+	}).join('');
+	const tableBody = document.querySelector('#servers tbody');
+	if (tableBody) tableBody.innerHTML = rows;
+	const dialogList = document.getElementById('allServersList');
+	if (!dialogList) return;
+	dialogList.innerHTML = '';
+	const header = document.createElement('div');
+	header.className = 'dialog-server header';
+	header.innerHTML = '<span><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidor</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg>Status</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg>CPU</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg>RAM</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg>Disco</span>';
+	dialogList.append(header);
+	servers.forEach(server => {
+		const row = document.createElement('div');
+		row.className = 'dialog-server';
+		const statusClass = server.status === 'Offline' ? 'offline' : server.status === 'Instavel' ? 'warning' : '';
+		const statusIcon = server.status === 'Offline' ? 'icon-server-offline' : server.status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
+		row.innerHTML = `<span class="server-name"><span class="status-dot ${statusClass}"></span>${escapeHtml(server.name)}</span><span class="dialog-status ${statusClass || 'online'}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${escapeHtml(server.status)}</span><span class="mono">${server.cpu}%</span><span class="mono">${server.ram}%</span><span class="mono">${server.disk}%</span>`;
+		dialogList.append(row);
+	});
+};
+const refreshDashboard = () => {
+	const scenario = liveDataActive ? getLiveScenario() : getScenario();
+	const onlineServers = scenario.servers.filter(server => server.status !== 'Offline').length;
+	const offlineServers = scenario.servers.length - onlineServers;
+	renderMetric(0, Math.round(scenario.cpu));
+	renderMetric(1, onlineServers, ` / ${liveDataActive ? scenario.servers.length : 28}`);
+	renderMetric(2, offlineServers, '');
+	renderMetric(3, scenario.activeAlertCount ?? scenario.alerts.filter(alert => alert.level !== 'resolved').length, '');
+	renderMetric(4, Math.round(scenario.ram));
+	document.getElementById('updatedAt').textContent = `ATUALIZADO · ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+	updatePerformanceChart(scenario);
+	updateStorageUsage(scenario.storageUsed, scenario.storageTotal);
+	renderServers(scenario.servers);
+	renderAlertList('#alerts .alert-list', scenario.alerts);
+	renderDialogAlerts(scenario.alerts, scenario.activeAlertCount);
+};
+const refreshLoop = () => {
+	refreshDashboard();
+	setInterval(refreshDashboard, 30000);
+	setInterval(() => {
+		if (liveDataActive && monitoringService.checkOffline()) refreshDashboard();
+	}, 5000);
+};
+const serverList = document.getElementById('allServersList');
+if (serverList) {
+	const existingRows = [...serverList.querySelectorAll('.dialog-server')];
+	existingRows.forEach(node => node.remove());
+}
 document.querySelectorAll('[data-dialog]').forEach(button => button.addEventListener('click', () => {
 	document.getElementById(button.dataset.dialog).showModal();
 }));
@@ -191,6 +305,7 @@ document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEve
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => {
 	if (event.target === dialog) dialog.close();
 }));
+refreshLoop();
 const navigationLinks = document.querySelectorAll('.sidebar-link, .topbar-alert-link');
 const sidebarCollapseToggle = document.getElementById('sidebarCollapseToggle');
 sidebarCollapseToggle.addEventListener('click', () => {
