@@ -71,6 +71,9 @@
 			for (const server of this.servers.values()) {
 				if (!server.offline && at - server.lastSeenAt > this.offlineAfterMs) {
 					server.offline = true;
+					const offlineDuration = this.offlineAfterMs < 60_000
+						? `${Math.ceil(this.offlineAfterMs / 1000)} segundos`
+						: `${Math.ceil(this.offlineAfterMs / 60_000)} minutos`;
 					this.createAlert({
 						key: `offline:${server.serverId}`,
 						level: 'critical',
@@ -78,7 +81,7 @@
 						serverId: server.serverId,
 						displayName: server.displayName,
 						title: 'Servidor OFFLINE (CRÍTICO)',
-						detail: `${server.displayName} está sem enviar dados há mais de 2 minutos.`
+						detail: `${server.displayName} está sem enviar dados há mais de ${offlineDuration}.`
 					});
 					changed = true;
 				}

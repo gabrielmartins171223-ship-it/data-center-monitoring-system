@@ -11,6 +11,8 @@ const resolveDisplayName = server => {
 };
 const simulationConfig = {
 	intervalMs: 20_000,
+	offlineAfterMs: 50_000,
+	offlineScenario: { serverIndex: 3, repeatEveryCycles: 12, startAfterCycles: 6, durationCycles: 5 },
 	servers: Array.from({ length: 4 }, (_, index) => {
 		const randomSuffix = Math.random().toString(36).slice(2, 7).toUpperCase();
 		return {
@@ -174,9 +176,11 @@ window.updateStorageUsage = updateStorageUsage;
 let liveDataActive = false;
 let telemetrySource = 'simulation';
 let simulationTimer = null;
-const monitoringService = new ServerMonitoringService({
+const createMonitoringService = offlineAfterMs => new ServerMonitoringService({
+	...(offlineAfterMs === undefined ? {} : { offlineAfterMs }),
 	onAlert: alert => window.dispatchEvent(new CustomEvent('monitoring-alert', { detail: alert }))
 });
+let monitoringService = createMonitoringService(simulationConfig.offlineAfterMs);
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
 	'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[character]);
@@ -427,9 +431,17 @@ const generateSimulatedTelemetry = (server, index, cycle) => {
 		diskTotal: 20
 	};
 };
+const isSimulatedServerOffline = (index, cycle) => {
+	const { serverIndex, repeatEveryCycles, startAfterCycles, durationCycles } = simulationConfig.offlineScenario;
+	const cycleInScenario = cycle % repeatEveryCycles;
+	return index === serverIndex &&
+		cycleInScenario >= startAfterCycles &&
+		cycleInScenario < startAfterCycles + durationCycles;
+};
 let simulationCycle = 0;
 const updateSimulatedTelemetry = () => {
 	simulationConfig.servers.forEach((server, index) => {
+		if (isSimulatedServerOffline(index, simulationCycle)) return;
 		const telemetry = generateSimulatedTelemetry(server, index, simulationCycle);
 		monitoringService.ingest(telemetry);
 	});
@@ -453,7 +465,7 @@ window.receiveServerTelemetry = telemetry => {
 	validateTelemetry(telemetry);
 	if (telemetrySource === 'simulation') {
 		stopTelemetrySimulation();
-		monitoringService.clear();
+		monitoringService = createMonitoringService();
 		performanceHistory.length = 0;
 		telemetrySource = 'api';
 	}
