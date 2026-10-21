@@ -8,7 +8,7 @@
 	class ServerMonitoringService {
 		constructor({ onAlert = () => {}, now = Date.now, offlineAfterMs = DEFAULT_OFFLINE_AFTER_MS } = {}) {
 			if (typeof onAlert !== 'function' || typeof now !== 'function') {
-				throw new TypeError('onAlert e now precisam ser funcoes.');
+				throw new TypeError('onAlert e now precisam ser funções.');
 			}
 			if (!Number.isFinite(offlineAfterMs) || offlineAfterMs <= 0) {
 				throw new RangeError('offlineAfterMs precisa ser maior que zero.');
@@ -22,12 +22,12 @@
 			this.activeAlerts = new Map();
 		}
 
-		ingest({ serverId, cpu, memory, diskUsed, diskTotal } = {}) {
+		ingest({ serverId, cpu, memory, diskUsed, diskTotal, ...metadata } = {}) {
 			if (typeof serverId !== 'string' || !serverId.trim() || serverId.length > 128) {
 				throw new TypeError('serverId precisa ser um texto entre 1 e 128 caracteres.');
 			}
 			if (![cpu, memory].every(value => Number.isFinite(value) && value >= 0 && value <= 100)) {
-				throw new RangeError('CPU e memoria precisam estar entre 0 e 100%.');
+				throw new RangeError('CPU e memória precisam estar entre 0 e 100%.');
 			}
 			if (!Number.isFinite(diskUsed) || !Number.isFinite(diskTotal) ||
 				diskUsed < 0 || diskTotal <= 0 || diskUsed > diskTotal) {
@@ -36,8 +36,19 @@
 
 			const id = serverId.trim();
 			const receivedAt = this.now();
+			const displayName = [
+				metadata.displayName,
+				metadata.serverName,
+				metadata.server_name,
+				metadata.name,
+				metadata.hostname
+			].find(value => typeof value === 'string' && value.trim()) || id;
 			const server = {
 				serverId: id,
+				displayName,
+				ip: metadata.ip,
+				cpuCores: metadata.cpuCores,
+				memoryTotal: metadata.memoryTotal,
 				cpu,
 				memory,
 				diskUsed,
@@ -47,15 +58,15 @@
 				offline: false
 			};
 			this.servers.set(id, server);
-			this.updateThresholdAlert(id, 'cpu', cpu);
-			this.updateThresholdAlert(id, 'memory', memory);
-			this.updateThresholdAlert(id, 'disk', server.disk);
+			this.updateThresholdAlert(id, server.displayName, 'cpu', cpu);
+			this.updateThresholdAlert(id, server.displayName, 'memory', memory);
+			this.updateThresholdAlert(id, server.displayName, 'disk', server.disk);
 			this.resolveAlert(`offline:${id}`);
 			return { ...server };
 		}
 
 		checkOffline(at = this.now()) {
-			if (!Number.isFinite(at)) throw new TypeError('O horario de verificacao precisa ser numerico.');
+			if (!Number.isFinite(at)) throw new TypeError('O horário de verificação precisa ser numérico.');
 			let changed = false;
 			for (const server of this.servers.values()) {
 				if (!server.offline && at - server.lastSeenAt > this.offlineAfterMs) {
@@ -65,8 +76,9 @@
 						level: 'critical',
 						type: 'offline',
 						serverId: server.serverId,
-						title: 'Servidor OFFLINE (CRITICO)',
-						detail: `${server.serverId} esta sem enviar dados ha mais de 2 minutos.`
+						displayName: server.displayName,
+						title: 'Servidor OFFLINE (CRÍTICO)',
+						detail: `${server.displayName} está sem enviar dados há mais de 2 minutos.`
 					});
 					changed = true;
 				}
@@ -86,21 +98,31 @@
 			return this.activeAlerts.size;
 		}
 
-		updateThresholdAlert(serverId, metric, value) {
+		clear() {
+			this.servers.clear();
+			this.alerts = [];
+			this.activeAlerts.clear();
+		}
+
+		updateThresholdAlert(serverId, displayName, metric, value) {
 			const key = `${metric}:${serverId}`;
-			if (value > ALERT_THRESHOLD) {
+			const level = value > ALERT_THRESHOLD ? 'critical' : value >= 70 ? 'warning' : null;
+			const currentAlert = this.activeAlerts.get(key);
+			if (currentAlert && currentAlert.level !== level) this.resolveAlert(key);
+			if (level) {
 				const labels = {
-					cpu: ['CPU acima de 85%', 'icon-cpu'],
-					memory: ['Memoria acima de 85%', 'icon-memory'],
-					disk: ['Disco acima de 85%', 'icon-storage']
+					cpu: ['CPU', 'icon-cpu'],
+					memory: ['Memória', 'icon-memory'],
+					disk: ['Disco', 'icon-storage']
 				};
 				this.createAlert({
 					key,
-					level: 'critical',
+					level,
 					type: metric,
 					serverId,
-					title: labels[metric][0],
-					detail: `${serverId} esta usando ${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de ${metric === 'memory' ? 'memoria' : metric === 'disk' ? 'disco' : 'CPU'}.`,
+					displayName,
+					title: level === 'critical' ? `${labels[metric][0]} em nível crítico` : `${labels[metric][0]} em nível médio`,
+					detail: `${displayName} está usando ${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de ${labels[metric][0].toLowerCase()}. ${level === 'critical' ? `Limite crítico acima de ${ALERT_THRESHOLD}%.` : 'Atenção entre 70% e 85%.'}`,
 					icon: labels[metric][1]
 				});
 			} else {
@@ -134,7 +156,7 @@
 			alert.level = 'resolved';
 			alert.resolvedAt = this.now();
 			alert.title = alert.type === 'offline' ? 'Servidor recuperado' : 'Alerta resolvido';
-			alert.detail = `${alert.serverId} voltou a ficar dentro do limite.`;
+			alert.detail = `${alert.displayName || alert.serverId} voltou a ficar dentro do limite.`;
 			this.alerts.splice(this.alerts.indexOf(alert), 1);
 			this.alerts.unshift(alert);
 			this.trimAlertHistory();

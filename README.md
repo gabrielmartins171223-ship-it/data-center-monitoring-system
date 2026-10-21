@@ -1,54 +1,43 @@
-# Pulse — Monitoramento do Data Center
+# pulse | INFRASTRUCTURE
 
-Dashboard web responsivo para visualizar telemetria de CPU, memória, disco, disponibilidade e alertas de até quatro servidores.
+Dashboard web responsivo para visualizar telemetria simulada ou recebida por integração de CPU, memória, disco, disponibilidade e alertas.
 
 ## Estrutura
 
 - `index.html`: estrutura da interface, indicadores, gráficos e diálogos.
 - `styles.css`: tema visual, estados dos componentes e layout responsivo.
-- `app.js`: atualização da interface, gráficos, navegação, validação de limites e integração da telemetria.
+- `app.js`: atualização da interface, simulação temporária, gráficos, navegação e integração da telemetria.
 - `monitoring.js`: validação das leituras, estado de disponibilidade e ciclo de vida dos alertas.
 
-## Interface
+## Simulação e telemetria
 
-A **Visão geral** mostra indicadores, histórico da sessão, armazenamento medido, servidores e alertas. As telas **Servidores**, **Armazenamento** e **Alertas** podem ser abertas pela navegação lateral. O cartão de capacidade planejada foi removido; não confunda os limites configurados no código com métricas coletadas.
+Enquanto a API/backend não estiver conectada, o dashboard cria quatro nomes de servidor aleatórios e dados simulados, atualizando as leituras imediatamente ao abrir a página e depois a cada 20 segundos. A tabela omite IPs e detalhes fixos de recursos:
 
-Sem telemetria, as métricas aparecem como indisponíveis. O dashboard não cria dados fictícios. O histórico de CPU/memória e os alertas só existem na memória da página e são perdidos ao recarregá-la.
+O total simulado é de 8 núcleos de CPU, 8 GB de RAM e 80 GB de disco (20 GB por servidor). Os usos de CPU, RAM e disco variam para exercitar níveis normais, médios (70% a 85%) e críticos (acima de 85%), incluindo abertura e resolução de alertas. São dados aleatórios de demonstração, não leituras oficiais da infraestrutura. A interface marca claramente o modo de simulação.
 
-## Configuração deste projeto
-
-Os limites de entrada correspondem à infraestrutura informada:
-
-- Quatro servidores: três servidores e um servidor central.
-- RAM planejada: 5 GB no total (1 GB por servidor e 2 GB no central).
-- Disco: no máximo 10 GB por servidor e 40 GB no total.
-- CPUs: seis vCPUs no total.
-
-Essa capacidade planejada não é exibida como consumo medido no dashboard. Para alterar limites, atualize a configuração `serverLimits` no início de `app.js` e valide as capacidades reais dos servidores antes de ingerir telemetria.
-
-## Integrar telemetria
-
-O navegador disponibiliza `window.receiveServerTelemetry` para ser chamado por código hospedeiro já integrado ao coletor:
+O navegador disponibiliza `window.receiveServerTelemetry` como ponto de integração do frontend. O backend/coletor deve enviar um objeto por servidor com um identificador estável, os campos de identificação disponíveis e as métricas medidas. Exemplo ilustrativo:
 
 ```js
 window.receiveServerTelemetry({
-  serverId: 'servidor-01',
-  cpu: 86.2,       // percentual de 0 a 100
-  memory: 78.4,    // percentual de 0 a 100
-  diskUsed: 8.6,   // GB
-  diskTotal: 10    // GB; no maximo 10 GB por servidor
+  serverId: '<identificador estável da API>',
+  name: '<nome informado pela API>',
+  ip: '<IP informado pela API>',
+  cpu: 0,        // percentual de 0 a 100
+  memory: 0,     // percentual de 0 a 100
+  diskUsed: 0,   // GB medidos
+  diskTotal: 1   // capacidade positiva medida, em GB
 });
 ```
 
-CPU, memória e disco geram alerta crítico quando ultrapassam 85%. Um servidor sem nova leitura por mais de dois minutos é marcado offline; a verificação ocorre a cada cinco segundos, após sua primeira leitura. O painel só calcula o percentual de disco quando os quatro servidores enviam dados recentes. A média de CPU/memória é calculada entre servidores com sinal e não pondera RAM alocada.
+O nome pode vir em `displayName`, `serverName`, `server_name`, `name` ou `hostname`; se nenhum desses campos vier, a interface usa o identificador recebido. IPs não são exibidos. CPU, memória e disco geram alerta médio quando atingem 70% e crítico quando ultrapassam 85%. Um servidor que já enviou uma leitura e fica mais de dois minutos sem atualizar é marcado offline. A verificação ocorre a cada cinco segundos enquanto há telemetria. Os alertas (abertura e resolução) aparecem no painel **Alertas recentes**, nas notificações e no histórico em memória da sessão. Os 10 eventos mais recentes são mostrados; o histórico se perde ao recarregar a página.
 
-Cada abertura ou resolução de alerta emite o evento de navegador `monitoring-alert`, com os dados do alerta em `event.detail`.
+Ao receber a primeira leitura por `window.receiveServerTelemetry`, o dashboard interrompe a simulação e limpa seus dados e alertas fictícios; a partir daí, exibe somente os dados recebidos pela integração. A capacidade total e o uso do disco são calculados a partir das leituras atuais.
 
 ## Prontidão para uso real
 
-**O dashboard ainda não está apto, sozinho, para monitoramento operacional.** `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. A página não conecta aos servidores, não persiste dados, não envia notificações externas e deixa de monitorar quando fechada.
+**Ainda não está apto, sozinho, para monitoramento operacional real.** A simulação é apenas para demonstração. A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O dashboard não se conecta diretamente aos servidores, não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada.
 
-Para produção, é necessário implantar um coletor/backend autenticado e protegido, conectar os quatro servidores, configurar armazenamento persistente e alertas externos, e monitorar o próprio coletor. Não exponha a função do navegador como canal público de ingestão.
+Para produção, implante um coletor/backend autenticado e protegido, conecte os servidores, configure persistência, notificações externas e monitoramento do próprio coletor. Não exponha a função do navegador como canal público de ingestão. Os nomes, IPs e capacidades devem ser fornecidos pela API e validados contra o ambiente real.
 
 ## Executar e verificar
 
@@ -60,8 +49,6 @@ Verifique a sintaxe dos scripts com Node.js:
 node --check app.js
 node --check monitoring.js
 ```
-
-O teste de uso manual feito nesta alteração cobriu carregamento sem dados simulados, navegação, estado sem telemetria, inventário e notificações, agregação de leituras dos quatro servidores, alertas e recuperação, limite de quatro servidores, máximo de 10 GB por disco e layout mobile. Isso valida o dashboard e a função local de entrada; não substitui o teste de ponta a ponta com o coletor real.
 
 ## Repositório e publicação
 

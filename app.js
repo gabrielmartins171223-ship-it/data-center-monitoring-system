@@ -1,7 +1,23 @@
-const serverLimits = {
-	count: 4,
-	diskPerServerGB: 10,
-	maxDiskGB: 40
+const resolveDisplayName = server => {
+	const candidate = [
+		server?.displayName,
+		server?.serverName,
+		server?.server_name,
+		server?.hostname,
+		server?.name,
+		server?.serverId
+	].find(value => typeof value === 'string' && value.trim());
+	return candidate ? candidate.trim() : '—';
+};
+const simulationConfig = {
+	intervalMs: 20_000,
+	servers: Array.from({ length: 4 }, (_, index) => {
+		const randomSuffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+		return {
+			serverId: `sim-${randomSuffix}-${index + 1}`,
+			displayName: `Servidor ${randomSuffix}`
+		};
+	})
 };
 const chartColors = { green: '#c6f36b', mint: '#67d6ae', muted: '#7d8a81', grid: 'rgba(134, 150, 139, .13)' };
 const performancePeriods = { 1: 60 * 60 * 1000, 6: 6 * 60 * 60 * 1000, 24: 24 * 60 * 60 * 1000 };
@@ -118,26 +134,24 @@ const setStoragePending = (usedCapacity, reportedCapacity) => {
 	storageCard.dataset.storageStatus = 'unknown';
 	storageAlert.hidden = true;
 	document.getElementById('storagePercentage').textContent = '—';
-	document.getElementById('storageStatus').textContent = reportedCapacity !== null ? 'Aguardando sinal dos 4 servidores' : 'Aguardando telemetria';
+	document.getElementById('storageStatus').textContent = reportedCapacity !== null ? 'Aguardando capacidade dos servidores' : 'Aguardando telemetria';
 	document.getElementById('storageUsed').textContent = usedCapacity === null ? '—' : `${formatCapacity(usedCapacity)} (reportado)`;
 	document.getElementById('storageAvailable').textContent = '—';
-	document.getElementById('storageCapacity').textContent = reportedCapacity === null
-		? '— / 40 GB max.'
-		: `${formatCapacity(reportedCapacity)} / 40 GB max.`;
+	document.getElementById('storageCapacity').textContent = reportedCapacity === null ? '—' : formatCapacity(reportedCapacity);
 	storageChart.data.datasets[0].data = [];
 	storageChart.update();
 };
 const updateStorageUsage = (usedCapacity, totalCapacity) => {
 	if (!Number.isFinite(usedCapacity) || !Number.isFinite(totalCapacity) || usedCapacity < 0 ||
-		totalCapacity <= 0 || totalCapacity > serverLimits.maxDiskGB || usedCapacity > totalCapacity) {
-		throw new RangeError('Uso e capacidade do disco devem estar entre zero e 40 GB, e o uso nao pode exceder a capacidade medida.');
+		totalCapacity <= 0 || usedCapacity > totalCapacity) {
+		throw new RangeError('Uso e capacidade do disco precisam ser válidos, e o uso não pode exceder a capacidade medida.');
 	}
 
 	const usagePercent = (usedCapacity / totalCapacity) * 100;
 	const storageStatus = usagePercent > 85
-		? { level: 'critical', color: '#f17b72', label: 'Critico: acima de 85%' }
+		? { level: 'critical', color: '#f17b72', label: 'Crítico: acima de 85%' }
 		: usagePercent >= 70
-			? { level: 'warning', color: '#f2bb65', label: 'Atencao: 70% ou mais' }
+			? { level: 'warning', color: '#f2bb65', label: 'Atenção: 70% ou mais' }
 			: { level: 'normal', color: chartColors.green, label: 'Normal' };
 	const storageCard = document.getElementById('storage');
 	const storageAlert = document.getElementById('storageAlert');
@@ -150,7 +164,7 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 	document.getElementById('storageStatus').textContent = storageStatus.label;
 	document.getElementById('storageUsed').textContent = formatCapacity(usedCapacity);
 	document.getElementById('storageAvailable').textContent = formatCapacity(totalCapacity - usedCapacity);
-	document.getElementById('storageCapacity').textContent = `${formatCapacity(totalCapacity)} / 40 GB max.`;
+	document.getElementById('storageCapacity').textContent = formatCapacity(totalCapacity);
 	storageChart.data.datasets[0].data = [usagePercent, 100 - usagePercent];
 	storageChart.data.datasets[0].backgroundColor = [storageStatus.color, '#344139'];
 	storageChart.update();
@@ -158,6 +172,8 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 window.updateStorageUsage = updateStorageUsage;
 
 let liveDataActive = false;
+let telemetrySource = 'simulation';
+let simulationTimer = null;
 const monitoringService = new ServerMonitoringService({
 	onAlert: alert => window.dispatchEvent(new CustomEvent('monitoring-alert', { detail: alert }))
 });
@@ -166,8 +182,12 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
 })[character]);
 const getServerStatus = server => server.offline
 	? 'Offline'
-	: [server.cpu, server.memory, server.disk].some(value => value > 85)
-		? 'Instavel'
+	: !server.lastSeenAt
+		? 'Aguardando'
+		: [server.cpu, server.memory, server.disk].some(value => value > 85)
+		? 'Instável'
+		: [server.cpu, server.memory, server.disk].some(value => value >= 70)
+			? 'Atenção'
 		: 'Online';
 const getLiveScenario = () => {
 	const monitoredServers = monitoringService.getServers();
@@ -182,7 +202,8 @@ const getLiveScenario = () => {
 			icon: alert.level === 'resolved' ? 'icon-check' : alert.icon || 'icon-server-offline',
 			title: alert.title,
 			detail: alert.detail,
-			time: elapsedMinutes < 1 ? 'agora' : `${elapsedMinutes} min`
+			time: elapsedMinutes < 1 ? 'agora' : `${elapsedMinutes} min`,
+			createdAt: alert.createdAt
 		};
 	});
 
@@ -218,17 +239,24 @@ const renderAlertList = (selector, alerts) => {
 	const container = document.querySelector(selector);
 	if (!container) return;
 	if (!alerts.length) {
-		container.innerHTML = '<p class="empty-state">Nenhum alerta recebido. Aguardando telemetria dos servidores.</p>';
+		const emptyCopy = telemetrySource === 'simulation'
+			? 'Nenhum alerta gerado pela simulação. O painel é atualizado quando uma condição excede o limite.'
+			: 'Nenhum alerta recebido. Aguardando telemetria dos servidores.';
+		container.innerHTML = `<p class="empty-state">${emptyCopy}</p>`;
 		return;
 	}
 	container.innerHTML = alerts.map(alert => {
 		const alertClass = alert.level === 'critical' ? 'critical' : alert.level === 'warning' ? 'warning' : 'resolved';
-		return `<div class="alert"><span class="alert-icon ${alertClass}"><svg aria-hidden="true"><use href="#${escapeHtml(alert.icon)}"/></svg></span><div><div class="alert-title">${escapeHtml(alert.title)}</div><div class="alert-detail">${escapeHtml(alert.detail)}</div></div><span class="alert-time"><svg aria-hidden="true"><use href="#icon-clock"/></svg>${escapeHtml(alert.time)}</span></div>`;
+		return `<div class="alert"><span class="alert-icon ${alertClass}"><svg aria-hidden="true"><use href="#${escapeHtml(alert.icon)}"/></svg></span><div><div class="alert-title">${escapeHtml(alert.title)}</div><div class="alert-detail">${escapeHtml(alert.detail)}</div></div><span class="alert-time" title="${new Date(alert.createdAt).toLocaleString('pt-BR')}"><svg aria-hidden="true"><use href="#icon-clock"/></svg>${escapeHtml(alert.time)}</span></div>`;
 	}).join('');
 };
 const renderDialogAlerts = (alerts, activeCount) => {
 	const alertCopy = document.querySelector('#alertsDialog .dialog-header p');
-	if (alertCopy) alertCopy.textContent = `${activeCount} eventos aguardam atencao`;
+	if (alertCopy) alertCopy.textContent = `${activeCount} alertas ativos`;
+	const notificationsNote = document.getElementById('notificationsNote');
+	if (notificationsNote) notificationsNote.textContent = telemetrySource === 'simulation'
+		? 'Alertas simulados aparecem quando uma condição excede o limite.'
+		: 'Os alertas aparecem quando uma condição de telemetria excede o limite.';
 	['#notificationsDialog .dialog-list', '#alertsDialog .dialog-list'].forEach(selector => renderAlertList(selector, alerts));
 	const topAlertLink = document.querySelector('.topbar-alert-link');
 	if (topAlertLink) {
@@ -249,41 +277,54 @@ const renderDialogAlerts = (alerts, activeCount) => {
 const renderServers = (servers) => {
 	const rows = servers.map(server => {
 		const status = getServerStatus(server);
-		const statusClass = status === 'Offline' ? 'offline' : status === 'Instavel' ? 'warning' : 'online';
-		const statusIcon = status === 'Offline' ? 'icon-server-offline' : status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
-		const usageClass = server.cpu >= 80 ? 'bad' : server.cpu >= 65 ? 'warn' : '';
-		return `<tr><td><span class="server-name"><span class="status-dot ${statusClass === 'online' ? '' : statusClass}"></span>${escapeHtml(server.serverId)}</span></td><td><span class="table-status ${statusClass}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${status}</span></td><td><span class="usage"><span class="usage-track"><span class="usage-fill ${usageClass}" style="width:${server.cpu}%"></span></span><span class="mono">${Math.round(server.cpu)}%</span></span></td><td class="mono">${Math.round(server.memory)}%</td><td class="mono">${Math.round(server.disk)}%</td></tr>`;
+		const statusClass = status === 'Offline' ? 'offline' : status === 'Instável' ? 'critical' : status === 'Atenção' ? 'warning' : status === 'Aguardando' ? 'pending' : 'online';
+		const statusIcon = status === 'Offline' ? 'icon-server-offline' : status === 'Instável' || status === 'Atenção' ? 'icon-alert' : status === 'Aguardando' ? 'icon-clock' : 'icon-check-circle';
+		const usageClass = server.cpu > 85 ? 'bad' : server.cpu >= 75 ? 'warn' : '';
+		const value = metric => Number.isFinite(server[metric]) ? `${Math.round(server[metric])}%` : '—';
+		const effectiveName = resolveDisplayName(server);
+		return `<tr><td><span class="server-name"><span class="status-dot ${statusClass === 'online' ? '' : statusClass}"></span>${escapeHtml(effectiveName)}</span></td><td><span class="table-status ${statusClass}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${status}</span></td><td><span class="usage"><span class="usage-track"><span class="usage-fill ${usageClass}" style="width:${Number.isFinite(server.cpu) ? server.cpu : 0}%"></span></span><span class="mono">${value('cpu')}</span></span></td><td class="mono">${value('memory')}</td><td class="mono">${value('disk')}</td></tr>`;
 	}).join('');
 	const tableBody = document.querySelector('#servers tbody');
-	if (tableBody) tableBody.innerHTML = rows || '<tr><td class="empty-state" colspan="5">Nenhum servidor enviou telemetria nesta sessao.</td></tr>';
+	if (tableBody) tableBody.innerHTML = rows || '<tr><td class="empty-state" colspan="5">Aguardando dados da API/backend.</td></tr>';
 
 	const dialogList = document.getElementById('allServersList');
 	if (!dialogList) return;
 	dialogList.innerHTML = '';
 	const header = document.createElement('div');
 	header.className = 'dialog-server header';
-	header.innerHTML = '<span><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidor</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg>Status</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg>CPU</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg>RAM</span><span><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg>Disco</span>';
+	header.innerHTML = '<span>Servidor</span><span>Status</span><span>CPU</span><span>RAM</span><span>Disco</span>';
 	dialogList.append(header);
-	if (!servers.length) {
-		const empty = document.createElement('p');
-		empty.className = 'empty-state';
-		empty.textContent = 'Nenhum servidor enviou telemetria nesta sessao.';
-		dialogList.append(empty);
-		return;
-	}
 	servers.forEach(server => {
 		const row = document.createElement('div');
 		row.className = 'dialog-server';
 		const status = getServerStatus(server);
-		const statusClass = status === 'Offline' ? 'offline' : status === 'Instavel' ? 'warning' : 'online';
-		const statusIcon = status === 'Offline' ? 'icon-server-offline' : status === 'Instavel' ? 'icon-alert' : 'icon-check-circle';
-		row.innerHTML = `<span class="server-name"><span class="status-dot ${statusClass === 'online' ? '' : statusClass}"></span>${escapeHtml(server.serverId)}</span><span class="dialog-status ${statusClass}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${status}</span><span class="mono">${Math.round(server.cpu)}%</span><span class="mono">${Math.round(server.memory)}%</span><span class="mono">${Math.round(server.disk)}%</span>`;
+		const statusClass = status === 'Offline' ? 'offline' : status === 'Instável' ? 'critical' : status === 'Atenção' ? 'warning' : status === 'Aguardando' ? 'pending' : 'online';
+		const statusIcon = status === 'Offline' ? 'icon-server-offline' : status === 'Instável' || status === 'Atenção' ? 'icon-alert' : status === 'Aguardando' ? 'icon-clock' : 'icon-check-circle';
+		const value = metric => Number.isFinite(server[metric]) ? `${Math.round(server[metric])}%` : '—';
+		const effectiveName = resolveDisplayName(server);
+		row.innerHTML = `<span class="server-name"><span class="status-dot ${statusClass === 'online' ? '' : statusClass}"></span>${escapeHtml(effectiveName)}</span><span class="dialog-status ${statusClass}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${status}</span><span class="mono">${value('cpu')}</span><span class="mono">${value('memory')}</span><span class="mono">${value('disk')}</span>`;
 		dialogList.append(row);
 	});
 };
 const refreshLiveStatus = scenario => {
 	const pill = document.querySelector('.live-pill');
 	const notice = document.querySelector('.data-notice');
+	const sourceFootnote = document.getElementById('dataSourceFootnote');
+	const serversSourceSubtitle = document.getElementById('serversSourceSubtitle');
+	const sourceStatusDot = document.querySelector('.heading-meta .status-dot');
+	if (telemetrySource === 'simulation') {
+		if (pill) {
+			pill.classList.remove('waiting', 'offline');
+			pill.classList.add('simulation');
+			pill.lastChild.textContent = 'SIMULAÇÃO · ATUALIZAÇÃO 20S';
+		}
+		if (notice) notice.textContent = 'Dados simulados para validar as telas e os alertas; serão substituídos ao conectar a API/backend.';
+		if (sourceFootnote) sourceFootnote.textContent = 'DADOS SIMULADOS · ATUALIZAÇÃO A CADA 20 SEGUNDOS';
+		if (serversSourceSubtitle) serversSourceSubtitle.textContent = 'SIMULAÇÃO LOCAL · SUBSTITUÍDA PELA API/BACKEND AO CONECTAR';
+		if (sourceStatusDot) sourceStatusDot.className = 'status-dot warning';
+		return;
+	}
+	if (pill) pill.classList.remove('simulation');
 	if (pill) {
 		if (scenario.onlineServers.length) {
 			pill.classList.remove('waiting', 'offline');
@@ -295,23 +336,27 @@ const refreshLiveStatus = scenario => {
 		}
 	}
 	if (notice) notice.textContent = scenario.onlineServers.length
-		? 'Telemetria recebida pela integracao; valores mostram as ultimas leituras dos servidores.'
-		: 'Sem servidores enviando dados recentes; os ultimos valores podem estar desatualizados.';
+		? 'Telemetria recebida pela integração; valores mostram as últimas leituras dos servidores.'
+		: 'Sem servidores enviando dados recentes; os últimos valores podem estar desatualizados.';
+	if (sourceFootnote) sourceFootnote.textContent = 'DADOS RECEBIDOS DA API/BACKEND';
+	if (serversSourceSubtitle) serversSourceSubtitle.textContent = 'DADOS RECEBIDOS DA API/BACKEND';
+	if (sourceStatusDot) sourceStatusDot.className = `status-dot ${scenario.onlineServers.length ? '' : 'warning'}`;
 };
 const refreshDashboard = () => {
 	const scenario = getLiveScenario();
+	const knownServerCount = scenario.monitoredServers.length;
 	const onlineCount = scenario.onlineServers.length;
-	const missingSignalCount = serverLimits.count - onlineCount;
+	const missingSignalCount = knownServerCount - onlineCount;
 	renderMetric('cpuMetric', scenario.cpu === null ? '—' : Math.round(scenario.cpu), scenario.cpu === null ? '' : '%');
-	renderMetric('onlineMetric', onlineCount, ` / ${serverLimits.count}`);
+	renderMetric('onlineMetric', onlineCount, ` / ${knownServerCount}`);
 	renderMetric('offlineMetric', missingSignalCount);
 	renderMetric('memoryMetric', scenario.memory === null ? '—' : Math.round(scenario.memory), scenario.memory === null ? '' : '%');
 
 	const latestReading = Math.max(...scenario.monitoredServers.map(server => server.lastSeenAt), 0);
 	document.getElementById('updatedAt').textContent = latestReading
-		? `ULTIMA LEITURA · ${new Date(latestReading).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+		? `ÚLTIMA LEITURA · ${new Date(latestReading).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
 		: 'AGUARDANDO DADOS';
-	document.getElementById('serversDialogSummary').textContent = `${onlineCount} de ${serverLimits.count} servidores com sinal · DC Sao Paulo 01`;
+	document.getElementById('serversDialogSummary').textContent = `${onlineCount} de ${knownServerCount} servidores com sinal`;
 	renderServers(scenario.monitoredServers);
 	renderAlertList('#alerts .alert-list', scenario.alerts);
 	renderDialogAlerts(scenario.alerts, scenario.activeAlertCount);
@@ -319,29 +364,35 @@ const refreshDashboard = () => {
 
 	if (!scenario.monitoredServers.length) {
 		setStoragePending(null, null);
-	} else if (scenario.monitoredServers.length !== serverLimits.count || onlineCount !== serverLimits.count) {
-		const reportedCapacity = scenario.monitoredServers.length === serverLimits.count
-			? scenario.storageCapacity
-			: null;
-		setStoragePending(scenario.storageUsed, reportedCapacity);
 	} else {
 		updateStorageUsage(scenario.storageUsed, scenario.storageCapacity);
 	}
 	if (liveDataActive) refreshLiveStatus(scenario);
 };
-window.receiveServerTelemetry = telemetry => {
+const validateTelemetry = telemetry => {
 	if (!telemetry || typeof telemetry !== 'object') {
 		throw new TypeError('A telemetria precisa ser enviada como um objeto.');
 	}
 	const serverId = typeof telemetry.serverId === 'string' ? telemetry.serverId.trim() : '';
-	const knownServers = monitoringService.getServers();
-	if (!knownServers.some(server => server.serverId === serverId) && knownServers.length >= serverLimits.count) {
-		throw new RangeError('O inventario aceita telemetria de no maximo 4 servidores.');
+	if (!serverId) {
+		throw new TypeError('A telemetria precisa incluir o identificador do servidor enviado pela API.');
 	}
-	if (!Number.isFinite(telemetry.diskTotal) || telemetry.diskTotal <= 0 || telemetry.diskTotal > serverLimits.diskPerServerGB) {
-		throw new RangeError('diskTotal deve ser informado em GB e nao pode exceder 10 GB por servidor.');
+	if (![telemetry.cpu, telemetry.memory].every(value => Number.isFinite(value) && value >= 0 && value <= 100)) {
+		throw new RangeError('CPU e memória precisam estar entre 0 e 100%.');
 	}
-
+	if (!Number.isFinite(telemetry.diskUsed) || telemetry.diskUsed < 0) {
+		throw new RangeError('diskUsed precisa ser um valor não negativo informado em GB.');
+	}
+	if (!Number.isFinite(telemetry.diskTotal) || telemetry.diskTotal <= 0) {
+		throw new RangeError('diskTotal precisa ser uma capacidade positiva informada pela API, em GB.');
+	}
+	if (telemetry.diskUsed > telemetry.diskTotal) {
+		throw new RangeError('diskUsed não pode exceder diskTotal.');
+	}
+	return telemetry;
+};
+const ingestTelemetry = telemetry => {
+	validateTelemetry(telemetry);
 	const server = monitoringService.ingest(telemetry);
 	liveDataActive = true;
 	const current = getLiveScenario();
@@ -351,6 +402,62 @@ window.receiveServerTelemetry = telemetry => {
 	}
 	refreshDashboard();
 	return server;
+};
+const stopTelemetrySimulation = () => {
+	if (simulationTimer !== null) {
+		clearInterval(simulationTimer);
+		simulationTimer = null;
+	}
+};
+const generateSimulatedTelemetry = (server, index, cycle) => {
+	const state = ['normal', 'warning', 'critical', 'normal'][(index + cycle) % 4];
+	const valueForState = () => {
+		if (state === 'critical') return 86 + Math.round(Math.random() * 12);
+		if (state === 'warning') return 70 + Math.round(Math.random() * 14);
+		return 24 + Math.round(Math.random() * 38);
+	};
+	const cpu = valueForState();
+	const memory = valueForState();
+	const disk = valueForState();
+	return {
+		...server,
+		cpu,
+		memory,
+		diskUsed: Number((disk / 100 * 20).toFixed(1)),
+		diskTotal: 20
+	};
+};
+let simulationCycle = 0;
+const updateSimulatedTelemetry = () => {
+	simulationConfig.servers.forEach((server, index) => {
+		const telemetry = generateSimulatedTelemetry(server, index, simulationCycle);
+		monitoringService.ingest(telemetry);
+	});
+	simulationCycle += 1;
+	liveDataActive = true;
+	const scenario = getLiveScenario();
+	performanceHistory.push({
+		time: new Date(),
+		cpu: scenario.cpu,
+		memory: scenario.memory
+	});
+	if (performanceHistory.length > 2000) performanceHistory.shift();
+	refreshDashboard();
+};
+const startTelemetrySimulation = () => {
+	if (telemetrySource !== 'simulation' || simulationTimer !== null) return;
+	updateSimulatedTelemetry();
+	simulationTimer = setInterval(updateSimulatedTelemetry, simulationConfig.intervalMs);
+};
+window.receiveServerTelemetry = telemetry => {
+	validateTelemetry(telemetry);
+	if (telemetrySource === 'simulation') {
+		stopTelemetrySimulation();
+		monitoringService.clear();
+		performanceHistory.length = 0;
+		telemetrySource = 'api';
+	}
+	return ingestTelemetry(telemetry);
 };
 
 const serverList = document.getElementById('allServersList');
@@ -385,9 +492,9 @@ document.querySelectorAll('.sidebar-link').forEach(link => link.addEventListener
 	}
 }));
 const pageViews = {
-	overview: { title: 'Visao geral', subtitle: 'Acompanhe a saude e o desempenho da sua infraestrutura.' },
+	overview: { title: 'Visão geral', subtitle: 'Acompanhe a saúde e o desempenho da sua infraestrutura.' },
 	servers: { title: 'Servidores', subtitle: 'Estado e uso dos servidores que enviam telemetria.' },
-	storage: { title: 'Armazenamento', subtitle: 'Uso medido e capacidade planejada do data center.' },
+	storage: { title: 'Armazenamento', subtitle: 'Uso e capacidade informados pela simulação ou pela API.' },
 	alerts: { title: 'Alertas', subtitle: 'Eventos identificados a partir da telemetria recebida.' }
 };
 const updateActiveNavigation = () => {
@@ -408,3 +515,4 @@ const updateActiveNavigation = () => {
 };
 window.addEventListener('hashchange', updateActiveNavigation);
 updateActiveNavigation();
+startTelemetrySimulation();
