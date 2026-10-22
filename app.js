@@ -153,7 +153,7 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 	const storageStatus = usagePercent > 85
 		? { level: 'critical', color: '#f17b72', label: 'Crítico: acima de 85%' }
 		: usagePercent >= 70
-			? { level: 'warning', color: '#f2bb65', label: 'Atenção: 70% ou mais' }
+			? { level: 'warning', color: '#f2bb65', label: 'Atenção: 70%' }
 			: { level: 'normal', color: chartColors.green, label: 'Normal' };
 	const storageCard = document.getElementById('storage');
 	const storageAlert = document.getElementById('storageAlert');

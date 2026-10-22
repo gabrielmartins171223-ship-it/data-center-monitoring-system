@@ -4,16 +4,16 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="theme-color" content="#101513">
-	<title>pulse | INFRASTRUCTURE</title>
+	<title>Monitoramento de VM</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="./styles.css?v=14">
+	<link rel="stylesheet" href="./styles.css?v=15">
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
 	<script src="./monitoring.js?v=2" defer></script>
-	<script src="./app.js?v=14" defer></script>
+	<script src="./app.js?v=15" defer></script>
 </head>
 <body data-view="overview">
 	<svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -38,7 +38,7 @@
 		<aside class="offcanvas-lg offcanvas-start pulse-sidebar" tabindex="-1" id="primarySidebar" aria-labelledby="sidebarTitle">
 			<div class="sidebar-inner">
 				<div class="sidebar-head">
-					<a class="brand" id="sidebarTitle" href="#overview" aria-label="pulse Infrastructure"><span class="brand-mark"><svg aria-hidden="true"><use href="#icon-pulse"/></svg></span><span class="brand-title">pulse<small>INFRASTRUCTURE</small></span></a>
+					<a class="brand" id="sidebarTitle" href="#overview" aria-label="Monitoramento de VM"><span class="brand-mark"><svg aria-hidden="true"><use href="#icon-pulse"/></svg></span><span class="brand-title">Monitoramento<small>DE VM</small></span></a>
 					<button class="sidebar-collapse-toggle" id="sidebarCollapseToggle" type="button" aria-label="Recolher menu lateral" aria-pressed="false" title="Recolher menu lateral"><span class="collapse-chevron" aria-hidden="true">‹</span></button>
 					<button class="sidebar-close" type="button" data-bs-dismiss="offcanvas" data-bs-target="#primarySidebar" aria-label="Fechar menu"><svg aria-hidden="true"><use href="#icon-close"/></svg></button>
 				</div>
@@ -49,7 +49,7 @@
 					<a class="sidebar-link" href="#storage" aria-label="Armazenamento" title="Armazenamento"><span class="nav-icon"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8.5" ry="3"/><path d="M3.5 5v14c0 1.66 3.81 3 8.5 3s8.5-1.34 8.5-3V5M3.5 12c0 1.66 3.81 3 8.5 3s8.5-1.34 8.5-3"/></svg></span><span class="nav-text">Armazenamento</span></a>
 					<a class="sidebar-link" href="#alerts" aria-label="Alertas, 0 ativos" title="Alertas"><span class="nav-icon"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span><span class="nav-text">Alertas</span><span class="nav-count">00</span></a>
 				</nav>
-				<div class="site-card"><div class="eyebrow"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg> DATA CENTER</div><div class="site-name"><span class="site-dot"></span><span class="site-label">pulse Infrastructure</span></div></div>
+				<div class="site-card"><div class="eyebrow"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg> DATA CENTER</div><div class="site-name"><span class="site-dot"></span><span class="site-label">Monitoramento de VM</span></div></div>
 			</div>
 		</aside>
 
@@ -63,16 +63,16 @@
 			</header>
 
 			<section class="page-heading">
-				<div><div class="overline"><svg class="inline-icon" aria-hidden="true"><use href="#icon-dashboard"/></svg> PULSE · INFRASTRUCTURE</div><h1 id="currentTitle">Visão geral</h1><p class="subtitle" id="currentSubtitle">Acompanhe a saúde e o desempenho da sua infraestrutura.</p><p class="data-notice"><svg class="inline-icon" aria-hidden="true"><use href="#icon-alert"/></svg> Dados simulados para validar o dashboard; serão substituídos ao conectar a API/backend.</p></div>
+				<div><div class="overline"><svg class="inline-icon" aria-hidden="true"><use href="#icon-dashboard"/></svg> MONITORAMENTO DE VM</div><h1 id="currentTitle">Visão geral</h1><p class="subtitle" id="currentSubtitle">Acompanhe a saúde e o desempenho da sua infraestrutura.</p><p class="data-notice"><svg class="inline-icon" aria-hidden="true"><use href="#icon-alert"/></svg> Dados simulados para validar o dashboard; serão substituídos ao conectar a API/backend.</p></div>
 				<div class="heading-meta"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg><span class="status-dot warning"></span><span>FONTE DE DADOS</span><span id="updatedAt">AGUARDANDO DADOS</span></div>
 			</section>
 
 			<section class="metrics" aria-label="Indicadores principais">
-				<article class="metric"><div class="metric-top"><span>Uso médio de CPU</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-cpu"/></svg></span></div><div class="metric-value" id="cpuMetric">—</div><div class="metric-foot">Média dos servidores com sinal</div></article>
-				<article class="metric"><div class="metric-top"><span>Servidores com sinal</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-server"/></svg></span></div><div class="metric-value online-count" id="onlineMetric">0<span class="metric-unit"> / 0</span></div><div class="metric-foot">Telemetria simulada recente</div></article>
-				<article class="metric"><div class="metric-top"><span>Servidores sem sinal</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-server-offline"/></svg></span></div><div class="metric-value offline-count" id="offlineMetric">0</div><div class="metric-foot">Servidores conhecidos pela integração</div></article>
-				<article class="metric"><div class="metric-top"><span>Alertas ativos</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-alert"/></svg></span></div><div class="metric-value" id="alertsMetric">0</div><div class="metric-foot">Calculados a partir da telemetria</div></article>
-				<article class="metric"><div class="metric-top"><span>Uso médio de memória</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-memory"/></svg></span></div><div class="metric-value" id="memoryMetric">—</div><div class="metric-foot">Média dos servidores com sinal</div></article>
+				<article class="metric"><div class="metric-top"><span>Uso médio de CPU</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-cpu"/></svg></span></div><div class="metric-value" id="cpuMetric">—</div></article>
+				<article class="metric"><div class="metric-top"><span>Servidores com sinal</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-server"/></svg></span></div><div class="metric-value online-count" id="onlineMetric">0<span class="metric-unit"> / 0</span></div></article>
+				<article class="metric"><div class="metric-top"><span>Servidores sem sinal</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-server-offline"/></svg></span></div><div class="metric-value offline-count" id="offlineMetric">0</div></article>
+				<article class="metric"><div class="metric-top"><span>Alertas ativos</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-alert"/></svg></span></div><div class="metric-value" id="alertsMetric">0</div></article>
+				<article class="metric"><div class="metric-top"><span>Uso médio de memória</span><span class="metric-symbol"><svg aria-hidden="true"><use href="#icon-memory"/></svg></span></div><div class="metric-value" id="memoryMetric">—</div></article>
 			</section>
 
 			<section id="performance" aria-labelledby="performanceTitle">
@@ -87,7 +87,7 @@
 				<article class="panel table-panel" id="servers"><div class="table-heading"><div><h2 class="section-title"><svg class="title-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidores</h2><div class="panel-subtitle" id="serversSourceSubtitle">SIMULAÇÃO LOCAL · SUBSTITUÍDA PELA API/BACKEND AO CONECTAR</div></div><button class="view-all" data-dialog="serversDialog" aria-haspopup="dialog" aria-controls="serversDialog"><svg aria-hidden="true"><use href="#icon-server"/></svg> VER TODOS <svg aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div><table><thead><tr><th><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg> Servidor</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg> Status</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg> CPU</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg> RAM</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg> Disco</th></tr></thead><tbody></tbody></table></article>
 				<article class="panel alerts-panel" id="alerts"><div class="table-heading"><div><h2 class="section-title"><svg class="title-icon" aria-hidden="true"><use href="#icon-alert"/></svg>Alertas recentes</h2><div class="panel-subtitle">Gerados com base nos dados recebidos</div></div><button class="view-all" data-dialog="alertsDialog" aria-haspopup="dialog" aria-controls="alertsDialog">00 ATIVOS</button></div><div class="alert-list"></div></article>
 			</section>
-			<footer class="footer-note"><span><svg class="inline-icon" aria-hidden="true"><use href="#icon-pulse"/></svg> PULSE · INFRASTRUCTURE</span><span id="dataSourceFootnote"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg> DADOS SIMULADOS · ATUALIZAÇÃO A CADA 20 SEGUNDOS</span></footer>
+			<footer class="footer-note"><span><svg class="inline-icon" aria-hidden="true"><use href="#icon-pulse"/></svg> MONITORAMENTO DE VM</span><span id="dataSourceFootnote"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg> DADOS SIMULADOS · ATUALIZAÇÃO A CADA 20 SEGUNDOS</span></footer>
 		</main>
 	</div>
 	<dialog id="notificationsDialog" aria-labelledby="notificationsTitle">

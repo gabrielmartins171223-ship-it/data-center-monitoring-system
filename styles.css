@@ -56,7 +56,7 @@ button { color: inherit; font: inherit; }
 .brand-mark { display: grid; width: 43px; height: 43px; flex: 0 0 43px; place-items: center; border-radius: 12px; background: var(--green); color: #172012; font-size: 17px; }
 .brand-mark svg { width: 27px; height: 27px; }
 .brand small { display: block; margin-top: 5px; color: var(--muted); font: 500 8px var(--mono); letter-spacing: 2px; }
-.brand-title { max-width: 155px; font: 700 24px/.95 var(--display); letter-spacing: -1px; }
+.brand-title { max-width: 155px; font: 700 18px/.95 var(--display); letter-spacing: -.7px; }
 .nav-label { padding: 0 10px 9px; color: #69776f; font: 500 10px var(--mono); letter-spacing: 1.4px; text-transform: uppercase; }
 .nav-icon { display: inline-flex; width: 18px; flex: 0 0 18px; align-items: center; justify-content: center; color: inherit; }
 .nav-count { margin-left: auto; border-radius: 3px; background: #392622; padding: 2px 6px; color: var(--red); font: 11px var(--mono); }
@@ -105,7 +105,6 @@ h1 { margin: 0; font: 600 27px var(--display); letter-spacing: -.8px; }
 .metric-symbol svg { width: 17px; height: 17px; }
 .metric-value { margin-top: 15px; font: 600 29px var(--display); letter-spacing: -1.2px; }
 .metric-unit { margin-left: 3px; color: #849188; font: 12px var(--mono); letter-spacing: 0; }
-.metric-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 10px; }
 .trend { display: inline-flex; align-items: center; gap: 3px; color: var(--mint); font: 10px var(--mono); }
 .trend svg { width: 12px; height: 12px; }
 .trend.warn { color: var(--amber); }
@@ -277,7 +276,7 @@ dialog::backdrop { background: #070b09bb; backdrop-filter: blur(3px); }
 	.brand { font-size: 17px; }
 	.brand-mark { width: 39px; height: 39px; flex-basis: 39px; }
 	.brand-mark svg { width: 24px; height: 24px; }
-	.brand-title { max-width: 185px; font-size: 21px; }
+	.brand-title { max-width: 185px; font-size: 18px; }
 	main { margin-left: 0; padding: 0 17px 26px; }
 	.topbar { min-height: 0; flex-wrap: wrap; gap: 10px; padding: 10px 0; }
 	.topbar-context { width: 100%; }
