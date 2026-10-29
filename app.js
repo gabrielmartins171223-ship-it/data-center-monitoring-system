@@ -12,6 +12,7 @@ const resolveDisplayName = server => {
 const DISK_CAPACITY_PER_SERVER_GB = 20;
 const METRICS_POLL_INTERVAL_MS = 10_000;
 const API_BASE = 'http://192.168.56.20:5000';
+const METRICS_QUERY_MODE = 'single_server';
 const chartColors = { green: '#c6f36b', mint: '#67d6ae', muted: '#7d8a81', grid: 'rgba(134, 150, 139, .13)' };
 const performancePeriods = { 1: 60 * 60 * 1000, 6: 6 * 60 * 60 * 1000, 24: 24 * 60 * 60 * 1000 };
 const performanceHistory = [];
@@ -362,20 +363,24 @@ const setApiConnectionSuccess = () => {
 	}
 	if (footnote) footnote.textContent = 'API CONECTADA · AGUARDANDO TELEMETRIA';
 };
-const extractLatestMetric = payload => {
-	if (Array.isArray(payload)) return payload[0] || null;
+const extractMetrics = payload => {
+	if (Array.isArray(payload)) return payload;
 	if (!payload || typeof payload !== 'object') {
 		throw new TypeError('A resposta da API precisa ser um objeto ou uma lista de leituras.');
 	}
-	if (Array.isArray(payload.metrics)) return payload.metrics[0] || null;
-	if (Array.isArray(payload.data)) return payload.data[0] || null;
-	if (payload.data && typeof payload.data === 'object') return payload.data;
-	return payload;
+	if (Array.isArray(payload.metrics)) return payload.metrics;
+	if (Array.isArray(payload.data)) return payload.data;
+	if (payload.data && typeof payload.data === 'object') return extractMetrics(payload.data);
+	return [payload];
 };
 const getMetricsEndpoint = () => {
 	const endpoint = new URL('/metrics', API_BASE);
-	endpoint.searchParams.set('limit', '1');
-	endpoint.searchParams.set('server_id', '1');
+	const queryParams = {
+		single_server: { limit: '1', server_id: '1' },
+		multiple_servers: { limit: '10' }
+	}[METRICS_QUERY_MODE];
+	if (!queryParams) throw new RangeError(`Modo de consulta de métricas inválido: ${METRICS_QUERY_MODE}`);
+	Object.entries(queryParams).forEach(([key, value]) => endpoint.searchParams.set(key, value));
 	return endpoint;
 };
 const pollServerTelemetry = async () => {
@@ -386,8 +391,7 @@ const pollServerTelemetry = async () => {
 		});
 		if (!response.ok) throw new Error(`A API respondeu HTTP ${response.status}.`);
 		const payload = await response.json();
-		const telemetry = extractLatestMetric(payload);
-		if (telemetry) window.receiveServerTelemetry(telemetry);
+		extractMetrics(payload).forEach(telemetry => window.receiveServerTelemetry(telemetry));
 		setApiConnectionSuccess();
 	} catch (error) {
 		setApiConnectionError(error);

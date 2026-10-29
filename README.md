@@ -11,7 +11,12 @@ Dashboard web responsivo para visualizar telemetria de CPU, memória, disco, dis
 
 ## Telemetria
 
-O dashboard não gera dados simulados. A cada 10 segundos, consulta `GET /metrics?limit=1&server_id=1` na URL definida pela constante `API_BASE`, no início de `app.js`, e envia a leitura mais recente para `window.receiveServerTelemetry`. O endpoint pode retornar diretamente uma leitura, uma lista, ou um objeto com `metrics`/`data` contendo a lista:
+O dashboard não gera dados simulados. A cada 10 segundos, consulta a rota `/metrics` na URL definida pela constante `API_BASE`, no início de `app.js`, e envia as leituras recebidas para `window.receiveServerTelemetry`. A constante `METRICS_QUERY_MODE` seleciona a consulta:
+
+- `single_server` (padrão): `GET /metrics?limit=1&server_id=1`, para monitorar o servidor de ID 1.
+- `multiple_servers`: `GET /metrics?limit=10`, para processar até 10 leituras, possivelmente de servidores diferentes.
+
+O endpoint pode retornar diretamente uma leitura, uma lista, ou um objeto com `metrics`/`data` contendo a lista:
 
 ```js
 window.receiveServerTelemetry({
@@ -33,7 +38,7 @@ CPU, memória e disco geram alerta médio quando atingem 70% e crítico quando u
 
 ## Prontidão para uso real
 
-**Ainda não está apto, sozinho, para monitoramento operacional real.** A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O backend não está incluído neste projeto; o dashboard consulta `GET /metrics?limit=1&server_id=1`, enquanto as rotas `POST /monitoramento`, `GET /servidores` e `GET /alertas` ainda precisam ser integradas quando os contratos de dados estiverem disponíveis. O GitHub Pages publica somente os arquivos estáticos. O frontend não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada. Erros de conexão e respostas inválidas aparecem no console e no status da conexão.
+**Ainda não está apto, sozinho, para monitoramento operacional real.** A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O backend não está incluído neste projeto; a consulta a `GET /metrics` pode ser alternada entre um servidor e vários pelo `METRICS_QUERY_MODE`, enquanto as rotas `POST /monitoramento`, `GET /servidores` e `GET /alertas` ainda precisam ser integradas quando os contratos de dados estiverem disponíveis. O GitHub Pages publica somente os arquivos estáticos. O frontend não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada. Erros de conexão e respostas inválidas aparecem no console e no status da conexão.
 
 Para produção, implante um coletor/backend autenticado e protegido e conecte-o ao frontend quando o endpoint e o contrato de acesso estiverem definidos. Configure persistência, notificações externas e monitoramento do próprio coletor. Não exponha a função do navegador como canal público de ingestão.
 
