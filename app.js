@@ -373,7 +373,10 @@ const extractLatestMetric = payload => {
 	return payload;
 };
 const getMetricsEndpoint = () => {
-	return new URL('/metricas', API_BASE);
+	const endpoint = new URL('/metrics', API_BASE);
+	endpoint.searchParams.set('limit', '1');
+	endpoint.searchParams.set('server_id', '1');
+	return endpoint;
 };
 const pollServerTelemetry = async () => {
 	try {
