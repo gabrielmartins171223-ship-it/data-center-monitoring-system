@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-api-base-url="">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,11 +9,11 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="./styles.css?v=15">
+	<link rel="stylesheet" href="./styles.css?v=16">
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
 	<script src="./monitoring.js?v=2" defer></script>
-	<script src="./app.js?v=15" defer></script>
+	<script src="./app.js?v=17" defer></script>
 </head>
 <body data-view="overview">
 	<svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -59,11 +59,11 @@
 					<button class="sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#primarySidebar" aria-controls="primarySidebar" aria-label="Abrir menu de navegação"><span class="menu-toggle-icon" aria-hidden="true"></span></button>
 					<div class="breadcrumb"><svg class="inline-icon" aria-hidden="true"><use href="#icon-dashboard"/></svg> Infraestrutura <span> / </span> <strong id="currentBreadcrumb">Visão geral</strong></div>
 				</div>
-				<div class="top-actions"><div class="live-pill simulation"><span class="status-dot"></span>SIMULAÇÃO · ATUALIZAÇÃO 20S</div><a class="topbar-alert-link" href="#alerts" aria-label="Abrir alertas: 0 ativos"><span class="nav-icon"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>Alertas<span class="nav-count">00</span></a><button class="icon-button" id="notificationsButton" aria-label="Abrir notificações" title="Notificações" aria-haspopup="dialog" aria-controls="notificationsDialog"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge"></span></button><div class="avatar" aria-label="Usuário admin">AD</div></div>
+				<div class="top-actions"><div class="live-pill waiting"><span class="status-dot"></span>AGUARDANDO TELEMETRIA</div><a class="topbar-alert-link" href="#alerts" aria-label="Abrir alertas: 0 ativos"><span class="nav-icon"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>Alertas<span class="nav-count">00</span></a><button class="icon-button" id="notificationsButton" aria-label="Abrir notificações" title="Notificações" aria-haspopup="dialog" aria-controls="notificationsDialog"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge"></span></button><div class="avatar" aria-label="Usuário admin">AD</div></div>
 			</header>
 
 			<section class="page-heading">
-				<div><div class="overline"><svg class="inline-icon" aria-hidden="true"><use href="#icon-dashboard"/></svg> MONITORAMENTO DE VM</div><h1 id="currentTitle">Visão geral</h1><p class="subtitle" id="currentSubtitle">Acompanhe a saúde e o desempenho da sua infraestrutura.</p><p class="data-notice"><svg class="inline-icon" aria-hidden="true"><use href="#icon-alert"/></svg> Dados simulados para validar o dashboard; serão substituídos ao conectar a API/backend.</p></div>
+				<div><div class="overline"><svg class="inline-icon" aria-hidden="true"><use href="#icon-dashboard"/></svg> MONITORAMENTO DE VM</div><h1 id="currentTitle">Visão geral</h1><p class="subtitle" id="currentSubtitle">Acompanhe a saúde e o desempenho da sua infraestrutura.</p></div>
 				<div class="heading-meta"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg><span class="status-dot warning"></span><span>FONTE DE DADOS</span><span id="updatedAt">AGUARDANDO DADOS</span></div>
 			</section>
 
@@ -84,15 +84,16 @@
 			</section>
 
 			<section class="lower-grid" id="operational-panels">
-				<article class="panel table-panel" id="servers"><div class="table-heading"><div><h2 class="section-title"><svg class="title-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidores</h2><div class="panel-subtitle" id="serversSourceSubtitle">SIMULAÇÃO LOCAL · SUBSTITUÍDA PELA API/BACKEND AO CONECTAR</div></div><button class="view-all" data-dialog="serversDialog" aria-haspopup="dialog" aria-controls="serversDialog"><svg aria-hidden="true"><use href="#icon-server"/></svg> VER TODOS <svg aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div><table><thead><tr><th><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg> Servidor</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg> Status</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg> CPU</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg> RAM</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg> Disco</th></tr></thead><tbody></tbody></table></article>
+				<article class="panel table-panel" id="servers"><div class="table-heading"><div><h2 class="section-title"><svg class="title-icon" aria-hidden="true"><use href="#icon-server"/></svg>Servidores</h2><div class="panel-subtitle" id="serversSourceSubtitle">AGUARDANDO TELEMETRIA</div></div><button class="view-all" data-dialog="serversDialog" aria-haspopup="dialog" aria-controls="serversDialog"><svg aria-hidden="true"><use href="#icon-server"/></svg> VER TODOS <svg aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div><table><thead><tr><th><svg class="table-icon" aria-hidden="true"><use href="#icon-server"/></svg> Servidor</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-check-circle"/></svg> Status</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-cpu"/></svg> CPU</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-memory"/></svg> RAM</th><th><svg class="table-icon" aria-hidden="true"><use href="#icon-storage"/></svg> Disco</th></tr></thead><tbody></tbody></table></article>
 				<article class="panel alerts-panel" id="alerts"><div class="table-heading"><div><h2 class="section-title"><svg class="title-icon" aria-hidden="true"><use href="#icon-alert"/></svg>Alertas recentes</h2><div class="panel-subtitle">Gerados com base nos dados recebidos</div></div><button class="view-all" data-dialog="alertsDialog" aria-haspopup="dialog" aria-controls="alertsDialog">00 ATIVOS</button></div><div class="alert-list"></div></article>
 			</section>
-			<footer class="footer-note"><span><svg class="inline-icon" aria-hidden="true"><use href="#icon-pulse"/></svg> MONITORAMENTO DE VM</span><span id="dataSourceFootnote"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg> DADOS SIMULADOS · ATUALIZAÇÃO A CADA 20 SEGUNDOS</span></footer>
+			<footer class="footer-note"><span><svg class="inline-icon" aria-hidden="true"><use href="#icon-pulse"/></svg> MONITORAMENTO DE VM</span><span id="dataSourceFootnote"><svg class="inline-icon" aria-hidden="true"><use href="#icon-database"/></svg> AGUARDANDO TELEMETRIA</span></footer>
 		</main>
 	</div>
+	<div class="alert-toasts" id="alertToasts" aria-live="assertive" aria-atomic="false"></div>
 	<dialog id="notificationsDialog" aria-labelledby="notificationsTitle">
 		<div class="dialog-header"><div><h2 id="notificationsTitle"><svg class="title-icon" aria-hidden="true"><use href="#icon-alert"/></svg>Notificações</h2><p>Eventos recentes da infraestrutura</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar notificações"><svg aria-hidden="true"><use href="#icon-close"/></svg></button></div>
-		<div class="dialog-content"><div class="dialog-list"></div><p class="dialog-note" id="notificationsNote">Alertas simulados aparecem quando uma condição excede o limite.</p></div>
+		<div class="dialog-content"><div class="dialog-list"></div><p class="dialog-note" id="notificationsNote">Alertas críticos e de indisponibilidade também aparecem como notificações na tela.</p></div>
 	</dialog>
 	<dialog id="serversDialog" aria-labelledby="serversDialogTitle">
 		<div class="dialog-header"><div><h2 id="serversDialogTitle"><svg class="title-icon" aria-hidden="true"><use href="#icon-server"/></svg>Inventário de servidores</h2><p id="serversDialogSummary">0 de 0 servidores com sinal</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar inventário"><svg aria-hidden="true"><use href="#icon-close"/></svg></button></div>

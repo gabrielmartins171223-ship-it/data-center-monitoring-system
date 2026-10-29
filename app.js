@@ -9,18 +9,10 @@ const resolveDisplayName = server => {
 	].find(value => typeof value === 'string' && value.trim());
 	return candidate ? candidate.trim() : '—';
 };
-const simulationConfig = {
-	intervalMs: 20_000,
-	offlineAfterMs: 50_000,
-	offlineScenario: { serverIndex: 3, repeatEveryCycles: 12, startAfterCycles: 6, durationCycles: 5 },
-	servers: Array.from({ length: 4 }, (_, index) => {
-		const randomSuffix = Math.random().toString(36).slice(2, 7).toUpperCase();
-		return {
-			serverId: `sim-${randomSuffix}-${index + 1}`,
-			displayName: `Servidor ${randomSuffix}`
-		};
-	})
-};
+const DISK_CAPACITY_PER_SERVER_GB = 20;
+const METRICS_POLL_INTERVAL_MS = 10_000;
+const METRICS_LIMIT = 1;
+const METRICS_SERVER_ID = '1';
 const chartColors = { green: '#c6f36b', mint: '#67d6ae', muted: '#7d8a81', grid: 'rgba(134, 150, 139, .13)' };
 const performancePeriods = { 1: 60 * 60 * 1000, 6: 6 * 60 * 60 * 1000, 24: 24 * 60 * 60 * 1000 };
 const performanceHistory = [];
@@ -174,13 +166,34 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 window.updateStorageUsage = updateStorageUsage;
 
 let liveDataActive = false;
-let telemetrySource = 'simulation';
-let simulationTimer = null;
-const createMonitoringService = offlineAfterMs => new ServerMonitoringService({
-	...(offlineAfterMs === undefined ? {} : { offlineAfterMs }),
-	onAlert: alert => window.dispatchEvent(new CustomEvent('monitoring-alert', { detail: alert }))
+const lastTelemetryTimestamps = new Map();
+const showCriticalAlertToast = alert => {
+	const container = document.getElementById('alertToasts');
+	if (!container) return;
+	const toast = document.createElement('div');
+	toast.className = 'alert-toast';
+	toast.setAttribute('role', 'alert');
+	const icon = document.createElement('span');
+	icon.className = 'alert-toast-icon';
+	icon.setAttribute('aria-hidden', 'true');
+	icon.textContent = '!';
+	const content = document.createElement('div');
+	const title = document.createElement('strong');
+	title.textContent = alert.title;
+	const detail = document.createElement('span');
+	detail.textContent = alert.detail;
+	content.append(title, detail);
+	toast.append(icon, content);
+	container.append(toast);
+	window.setTimeout(() => toast.remove(), 8000);
+};
+const createMonitoringService = () => new ServerMonitoringService({
+	onAlert: alert => {
+		window.dispatchEvent(new CustomEvent('monitoring-alert', { detail: alert }));
+		if (alert.level === 'critical') showCriticalAlertToast(alert);
+	}
 });
-let monitoringService = createMonitoringService(simulationConfig.offlineAfterMs);
+let monitoringService = createMonitoringService();
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
 	'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[character]);
@@ -243,10 +256,7 @@ const renderAlertList = (selector, alerts) => {
 	const container = document.querySelector(selector);
 	if (!container) return;
 	if (!alerts.length) {
-		const emptyCopy = telemetrySource === 'simulation'
-			? 'Nenhum alerta gerado pela simulação. O painel é atualizado quando uma condição excede o limite.'
-			: 'Nenhum alerta recebido. Aguardando telemetria dos servidores.';
-		container.innerHTML = `<p class="empty-state">${emptyCopy}</p>`;
+		container.innerHTML = '<p class="empty-state">Nenhum alerta recebido. Aguardando telemetria dos servidores.</p>';
 		return;
 	}
 	container.innerHTML = alerts.map(alert => {
@@ -258,9 +268,7 @@ const renderDialogAlerts = (alerts, activeCount) => {
 	const alertCopy = document.querySelector('#alertsDialog .dialog-header p');
 	if (alertCopy) alertCopy.textContent = `${activeCount} alertas ativos`;
 	const notificationsNote = document.getElementById('notificationsNote');
-	if (notificationsNote) notificationsNote.textContent = telemetrySource === 'simulation'
-		? 'Alertas simulados aparecem quando uma condição excede o limite.'
-		: 'Os alertas aparecem quando uma condição de telemetria excede o limite.';
+	if (notificationsNote) notificationsNote.textContent = 'Alertas críticos e de indisponibilidade também aparecem como notificações na tela.';
 	['#notificationsDialog .dialog-list', '#alertsDialog .dialog-list'].forEach(selector => renderAlertList(selector, alerts));
 	const topAlertLink = document.querySelector('.topbar-alert-link');
 	if (topAlertLink) {
@@ -312,39 +320,81 @@ const renderServers = (servers) => {
 };
 const refreshLiveStatus = scenario => {
 	const pill = document.querySelector('.live-pill');
-	const notice = document.querySelector('.data-notice');
 	const sourceFootnote = document.getElementById('dataSourceFootnote');
 	const serversSourceSubtitle = document.getElementById('serversSourceSubtitle');
 	const sourceStatusDot = document.querySelector('.heading-meta .status-dot');
-	if (telemetrySource === 'simulation') {
-		if (pill) {
-			pill.classList.remove('waiting', 'offline');
-			pill.classList.add('simulation');
-			pill.lastChild.textContent = 'SIMULAÇÃO · ATUALIZAÇÃO 20S';
-		}
-		if (notice) notice.textContent = 'Dados simulados para validar as telas e os alertas; serão substituídos ao conectar a API/backend.';
-		if (sourceFootnote) sourceFootnote.textContent = 'DADOS SIMULADOS · ATUALIZAÇÃO A CADA 20 SEGUNDOS';
-		if (serversSourceSubtitle) serversSourceSubtitle.textContent = 'SIMULAÇÃO LOCAL · SUBSTITUÍDA PELA API/BACKEND AO CONECTAR';
-		if (sourceStatusDot) sourceStatusDot.className = 'status-dot warning';
-		return;
-	}
-	if (pill) pill.classList.remove('simulation');
 	if (pill) {
 		if (scenario.onlineServers.length) {
 			pill.classList.remove('waiting', 'offline');
-			pill.lastChild.textContent = 'MONITORAMENTO AO VIVO';
+			pill.lastChild.textContent = 'API CONECTADA · AO VIVO';
 		} else {
 			pill.classList.remove('waiting');
 			pill.classList.add('offline');
 			pill.lastChild.textContent = 'SEM SINAL DE TELEMETRIA';
 		}
 	}
-	if (notice) notice.textContent = scenario.onlineServers.length
-		? 'Telemetria recebida pela integração; valores mostram as últimas leituras dos servidores.'
-		: 'Sem servidores enviando dados recentes; os últimos valores podem estar desatualizados.';
 	if (sourceFootnote) sourceFootnote.textContent = 'DADOS RECEBIDOS DA API/BACKEND';
 	if (serversSourceSubtitle) serversSourceSubtitle.textContent = 'DADOS RECEBIDOS DA API/BACKEND';
 	if (sourceStatusDot) sourceStatusDot.className = `status-dot ${scenario.onlineServers.length ? '' : 'warning'}`;
+};
+const setApiConnectionError = error => {
+	console.error('Falha ao consultar a telemetria da API:', error);
+	const pill = document.querySelector('.live-pill');
+	const footnote = document.getElementById('dataSourceFootnote');
+	if (pill) {
+		pill.classList.remove('waiting');
+		pill.classList.add('offline');
+		pill.lastChild.textContent = 'ERRO NA CONEXÃO COM A API';
+	}
+	if (footnote) footnote.textContent = 'ERRO AO CONSULTAR API · VERIFIQUE CONEXÃO E CORS';
+};
+const setApiConnectionSuccess = () => {
+	const scenario = getLiveScenario();
+	if (liveDataActive) {
+		refreshLiveStatus(scenario);
+		return;
+	}
+	const pill = document.querySelector('.live-pill');
+	const footnote = document.getElementById('dataSourceFootnote');
+	if (pill) {
+		pill.classList.remove('offline');
+		pill.classList.add('waiting');
+		pill.lastChild.textContent = 'API CONECTADA · AGUARDANDO TELEMETRIA';
+	}
+	if (footnote) footnote.textContent = 'API CONECTADA · AGUARDANDO TELEMETRIA';
+};
+const extractLatestMetric = payload => {
+	if (Array.isArray(payload)) return payload[0] || null;
+	if (!payload || typeof payload !== 'object') {
+		throw new TypeError('A resposta da API precisa ser um objeto ou uma lista de leituras.');
+	}
+	if (Array.isArray(payload.metrics)) return payload.metrics[0] || null;
+	if (Array.isArray(payload.data)) return payload.data[0] || null;
+	if (payload.data && typeof payload.data === 'object') return payload.data;
+	return payload;
+};
+const getMetricsEndpoint = () => {
+	const configuredBaseUrl = document.documentElement.dataset.apiBaseUrl;
+	const baseUrl = configuredBaseUrl || window.location.origin;
+	const endpoint = new URL('/metrics', baseUrl);
+	endpoint.searchParams.set('limit', String(METRICS_LIMIT));
+	endpoint.searchParams.set('server_id', METRICS_SERVER_ID);
+	return endpoint;
+};
+const pollServerTelemetry = async () => {
+	try {
+		const response = await fetch(getMetricsEndpoint(), {
+			headers: { Accept: 'application/json' },
+			cache: 'no-store'
+		});
+		if (!response.ok) throw new Error(`A API respondeu HTTP ${response.status}.`);
+		const payload = await response.json();
+		const telemetry = extractLatestMetric(payload);
+		if (telemetry) window.receiveServerTelemetry(telemetry);
+		setApiConnectionSuccess();
+	} catch (error) {
+		setApiConnectionError(error);
+	}
 };
 const refreshDashboard = () => {
 	const scenario = getLiveScenario();
@@ -373,30 +423,74 @@ const refreshDashboard = () => {
 	}
 	if (liveDataActive) refreshLiveStatus(scenario);
 };
-const validateTelemetry = telemetry => {
+const toTelemetryNumber = (value, fieldName) => {
+	if ((typeof value !== 'number' && typeof value !== 'string') ||
+		(typeof value === 'string' && !value.trim())) {
+		throw new TypeError(`${fieldName} precisa ser um número.`);
+	}
+	const number = Number(value);
+	if (!Number.isFinite(number)) throw new TypeError(`${fieldName} precisa ser um número válido.`);
+	return number;
+};
+const mapBackendTelemetry = telemetry => {
 	if (!telemetry || typeof telemetry !== 'object') {
 		throw new TypeError('A telemetria precisa ser enviada como um objeto.');
 	}
-	const serverId = typeof telemetry.serverId === 'string' ? telemetry.serverId.trim() : '';
+	const serverIdValue = telemetry.ip ?? telemetry.serverId ?? telemetry.id ?? telemetry.server_id;
+	const serverId = typeof serverIdValue === 'string' || typeof serverIdValue === 'number'
+		? String(serverIdValue).trim()
+		: '';
 	if (!serverId) {
-		throw new TypeError('A telemetria precisa incluir o identificador do servidor enviado pela API.');
+		throw new TypeError('A telemetria precisa incluir ip, serverId ou id para identificar o servidor.');
 	}
-	if (![telemetry.cpu, telemetry.memory].every(value => Number.isFinite(value) && value >= 0 && value <= 100)) {
+	const cpu = toTelemetryNumber(telemetry.cpu_percent ?? telemetry.cpu, 'CPU');
+	const memory = toTelemetryNumber(telemetry.memory_percent ?? telemetry.memory, 'Memória');
+	if (![cpu, memory].every(value => value >= 0 && value <= 100)) {
 		throw new RangeError('CPU e memória precisam estar entre 0 e 100%.');
 	}
-	if (!Number.isFinite(telemetry.diskUsed) || telemetry.diskUsed < 0) {
+	const diskPercent = telemetry.disk_percent === undefined
+		? null
+		: toTelemetryNumber(telemetry.disk_percent, 'disk_percent');
+	const diskTotal = telemetry.diskTotal === undefined
+		? DISK_CAPACITY_PER_SERVER_GB
+		: toTelemetryNumber(telemetry.diskTotal, 'diskTotal');
+	const diskUsed = telemetry.diskUsed === undefined && diskPercent !== null
+		? diskTotal * diskPercent / 100
+		: toTelemetryNumber(telemetry.diskUsed, 'diskUsed');
+	if (diskPercent !== null && (diskPercent < 0 || diskPercent > 100)) {
+		throw new RangeError('disk_percent precisa estar entre 0 e 100%.');
+	}
+	if (diskUsed < 0) {
 		throw new RangeError('diskUsed precisa ser um valor não negativo informado em GB.');
 	}
-	if (!Number.isFinite(telemetry.diskTotal) || telemetry.diskTotal <= 0) {
-		throw new RangeError('diskTotal precisa ser uma capacidade positiva informada pela API, em GB.');
+	if (diskTotal <= 0) {
+		throw new RangeError('diskTotal precisa ser uma capacidade positiva informada em GB.');
 	}
-	if (telemetry.diskUsed > telemetry.diskTotal) {
+	if (diskUsed > diskTotal) {
 		throw new RangeError('diskUsed não pode exceder diskTotal.');
 	}
-	return telemetry;
+	const timestamp = telemetry.timestamp;
+	if ((typeof timestamp !== 'string' && typeof timestamp !== 'number') ||
+		(typeof timestamp === 'string' && !timestamp.trim()) ||
+		(typeof timestamp === 'number' && !Number.isFinite(timestamp))) {
+		throw new TypeError('A telemetria precisa incluir um timestamp válido.');
+	}
+	const displayNameValue = telemetry.displayName ?? telemetry.name;
+	const displayName = typeof displayNameValue === 'string' && displayNameValue.trim()
+		? displayNameValue.trim()
+		: serverId;
+	return {
+		serverId,
+		displayName,
+		ip: telemetry.ip,
+		cpu,
+		memory,
+		diskUsed,
+		diskTotal,
+		timestamp: String(timestamp).trim()
+	};
 };
 const ingestTelemetry = telemetry => {
-	validateTelemetry(telemetry);
 	const server = monitoringService.ingest(telemetry);
 	liveDataActive = true;
 	const current = getLiveScenario();
@@ -407,69 +501,12 @@ const ingestTelemetry = telemetry => {
 	refreshDashboard();
 	return server;
 };
-const stopTelemetrySimulation = () => {
-	if (simulationTimer !== null) {
-		clearInterval(simulationTimer);
-		simulationTimer = null;
-	}
-};
-const generateSimulatedTelemetry = (server, index, cycle) => {
-	const state = ['normal', 'warning', 'critical', 'normal'][(index + cycle) % 4];
-	const valueForState = () => {
-		if (state === 'critical') return 86 + Math.round(Math.random() * 12);
-		if (state === 'warning') return 70 + Math.round(Math.random() * 14);
-		return 24 + Math.round(Math.random() * 38);
-	};
-	const cpu = valueForState();
-	const memory = valueForState();
-	const disk = valueForState();
-	return {
-		...server,
-		cpu,
-		memory,
-		diskUsed: Number((disk / 100 * 20).toFixed(1)),
-		diskTotal: 20
-	};
-};
-const isSimulatedServerOffline = (index, cycle) => {
-	const { serverIndex, repeatEveryCycles, startAfterCycles, durationCycles } = simulationConfig.offlineScenario;
-	const cycleInScenario = cycle % repeatEveryCycles;
-	return index === serverIndex &&
-		cycleInScenario >= startAfterCycles &&
-		cycleInScenario < startAfterCycles + durationCycles;
-};
-let simulationCycle = 0;
-const updateSimulatedTelemetry = () => {
-	simulationConfig.servers.forEach((server, index) => {
-		if (isSimulatedServerOffline(index, simulationCycle)) return;
-		const telemetry = generateSimulatedTelemetry(server, index, simulationCycle);
-		monitoringService.ingest(telemetry);
-	});
-	simulationCycle += 1;
-	liveDataActive = true;
-	const scenario = getLiveScenario();
-	performanceHistory.push({
-		time: new Date(),
-		cpu: scenario.cpu,
-		memory: scenario.memory
-	});
-	if (performanceHistory.length > 2000) performanceHistory.shift();
-	refreshDashboard();
-};
-const startTelemetrySimulation = () => {
-	if (telemetrySource !== 'simulation' || simulationTimer !== null) return;
-	updateSimulatedTelemetry();
-	simulationTimer = setInterval(updateSimulatedTelemetry, simulationConfig.intervalMs);
-};
 window.receiveServerTelemetry = telemetry => {
-	validateTelemetry(telemetry);
-	if (telemetrySource === 'simulation') {
-		stopTelemetrySimulation();
-		monitoringService = createMonitoringService();
-		performanceHistory.length = 0;
-		telemetrySource = 'api';
-	}
-	return ingestTelemetry(telemetry);
+	const mappedTelemetry = mapBackendTelemetry(telemetry);
+	if (lastTelemetryTimestamps.get(mappedTelemetry.serverId) === mappedTelemetry.timestamp) return null;
+	const server = ingestTelemetry(mappedTelemetry);
+	lastTelemetryTimestamps.set(mappedTelemetry.serverId, mappedTelemetry.timestamp);
+	return server;
 };
 
 const serverList = document.getElementById('allServersList');
@@ -488,6 +525,11 @@ setInterval(() => {
 	if (liveDataActive && monitoringService.checkOffline()) refreshDashboard();
 }, 5000);
 refreshDashboard();
+const scheduleMetricsPolling = async () => {
+	await pollServerTelemetry();
+	window.setTimeout(scheduleMetricsPolling, METRICS_POLL_INTERVAL_MS);
+};
+scheduleMetricsPolling();
 
 const navigationLinks = document.querySelectorAll('.sidebar-link, .topbar-alert-link');
 const sidebarCollapseToggle = document.getElementById('sidebarCollapseToggle');
@@ -506,7 +548,7 @@ document.querySelectorAll('.sidebar-link').forEach(link => link.addEventListener
 const pageViews = {
 	overview: { title: 'Visão geral', subtitle: 'Acompanhe a saúde e o desempenho da sua infraestrutura.' },
 	servers: { title: 'Servidores', subtitle: 'Estado e uso dos servidores que enviam telemetria.' },
-	storage: { title: 'Armazenamento', subtitle: 'Uso e capacidade informados pela simulação ou pela API.' },
+	storage: { title: 'Armazenamento', subtitle: 'Uso e capacidade informados pela API/backend.' },
 	alerts: { title: 'Alertas', subtitle: 'Eventos identificados a partir da telemetria recebida.' }
 };
 const updateActiveNavigation = () => {
@@ -527,4 +569,3 @@ const updateActiveNavigation = () => {
 };
 window.addEventListener('hashchange', updateActiveNavigation);
 updateActiveNavigation();
-startTelemetrySimulation();

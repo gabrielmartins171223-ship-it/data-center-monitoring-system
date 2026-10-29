@@ -1,43 +1,41 @@
 # Monitoramento de VM
 
-Dashboard web responsivo para visualizar telemetria simulada ou recebida por integração de CPU, memória, disco, disponibilidade e alertas.
+Dashboard web responsivo para visualizar telemetria de CPU, memória, disco, disponibilidade e alertas recebida pela integração.
 
 ## Estrutura
 
 - `index.html`: estrutura da interface, indicadores, gráficos e diálogos.
 - `styles.css`: tema visual, estados dos componentes e layout responsivo.
-- `app.js`: atualização da interface, simulação temporária, gráficos, navegação e integração da telemetria.
+- `app.js`: atualização da interface, gráficos, navegação e adaptação da telemetria recebida.
 - `monitoring.js`: validação das leituras, estado de disponibilidade e ciclo de vida dos alertas.
 
-## Simulação e telemetria
+## Telemetria
 
-Enquanto a API/backend não estiver conectada, o dashboard cria quatro nomes de servidor aleatórios e dados simulados, atualizando as leituras imediatamente ao abrir a página e depois a cada 20 segundos. A tabela omite IPs e detalhes fixos de recursos:
-
-O total simulado é de 8 núcleos de CPU, 8 GB de RAM e 80 GB de disco (20 GB por servidor). Os usos de CPU, RAM e disco variam para exercitar níveis normais, médios (70% a 85%) e críticos (acima de 85%), incluindo abertura e resolução de alertas. A cada quatro minutos, um dos servidores deixa de enviar leituras por aproximadamente 100 segundos; após 50 segundos sem atualização, ele aparece offline e gera um alerta crítico. Quando as leituras simuladas voltam, o servidor aparece online e o alerta é resolvido. Esse limite reduzido vale apenas para a demonstração; na integração com a API/backend, o limite offline continua sendo de dois minutos. São dados aleatórios de demonstração, não leituras oficiais da infraestrutura. A interface marca claramente o modo de simulação.
-
-O navegador disponibiliza `window.receiveServerTelemetry` como ponto de integração do frontend. O backend/coletor deve enviar um objeto por servidor com um identificador estável, os campos de identificação disponíveis e as métricas medidas. Exemplo ilustrativo:
+O dashboard não gera dados simulados. A cada 10 segundos, consulta `GET /metrics?limit=1&server_id=1` na mesma origem da página e envia a leitura mais recente para `window.receiveServerTelemetry`. O endpoint pode retornar diretamente uma leitura, uma lista, ou um objeto com `metrics`/`data` contendo a lista:
 
 ```js
 window.receiveServerTelemetry({
-  serverId: '<identificador estável da API>',
-  name: '<nome informado pela API>',
-  ip: '<IP informado pela API>',
-  cpu: 0,        // percentual de 0 a 100
-  memory: 0,     // percentual de 0 a 100
-  diskUsed: 0,   // GB medidos
-  diskTotal: 1   // capacidade positiva medida, em GB
+  id: 1,
+  name: 'VM 1',
+  ip: '10.0.0.1',
+  cpu_percent: '30',
+  memory_percent: '45',
+  disk_percent: '60',
+  timestamp: '2026-10-28T22:28:00Z'
 });
 ```
 
-O nome pode vir em `displayName`, `serverName`, `server_name`, `name` ou `hostname`; se nenhum desses campos vier, a interface usa o identificador recebido. IPs não são exibidos. CPU, memória e disco geram alerta médio quando atingem 70% e crítico quando ultrapassam 85%. Na integração com a API/backend, um servidor que já enviou uma leitura e fica mais de dois minutos sem atualizar é marcado offline. A verificação ocorre a cada cinco segundos enquanto há telemetria. Os alertas (abertura e resolução) aparecem no painel **Alertas recentes**, nas notificações e no histórico em memória da sessão. Os 10 eventos mais recentes são mostrados; o histórico se perde ao recarregar a página.
+Para uma API hospedada em outra origem, configure `data-api-base-url` no elemento `<html>` com o host e a porta da API, sem o caminho `/metrics` (por exemplo, `https://api.exemplo.com`). O servidor precisa permitir a origem do dashboard via CORS. O valor vazio usa a origem atual; GitHub Pages não hospeda nem encaminha `/metrics`, então a chamada só funcionará lá se houver uma API/proxy acessível nessa mesma origem ou se a URL base for configurada.
 
-Ao receber a primeira leitura por `window.receiveServerTelemetry`, o dashboard interrompe a simulação e limpa seus dados e alertas fictícios; a partir daí, exibe somente os dados recebidos pela integração. A capacidade total e o uso do disco são calculados a partir das leituras atuais.
+O adaptador converte `ip` para `serverId` (usa `serverId`, `id` ou `server_id` como alternativas), `name` para `displayName`, e `cpu_percent`/`memory_percent` para números `cpu`/`memory`. Valores métricos recebidos como texto numérico são convertidos com `Number()`. Cada VM tem capacidade de disco configurada em 20 GB; `disk_percent` é convertido para `diskUsed` e `diskTotal` para manter o contrato usado pelo monitoramento. Leituras com timestamp igual ao último recebido para aquela VM são ignoradas.
+
+CPU, memória e disco geram alerta médio quando atingem 70% e crítico quando ultrapassam 85%. Alertas críticos aparecem em um toast no dashboard. Uma VM que já enviou uma leitura e fica mais de dois minutos sem atualizar é marcada offline e também gera um toast; a verificação ocorre a cada cinco segundos. Os eventos aparecem no painel **Alertas recentes**, nas notificações e no histórico em memória da sessão. Os 10 eventos mais recentes são mostrados; o histórico se perde ao recarregar a página.
 
 ## Prontidão para uso real
 
-**Ainda não está apto, sozinho, para monitoramento operacional real.** A simulação é apenas para demonstração. A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O dashboard não se conecta diretamente aos servidores, não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada.
+**Ainda não está apto, sozinho, para monitoramento operacional real.** A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O dashboard consulta o endpoint de métricas, mas não há API/backend nem configuração para hospedá-la neste projeto; o GitHub Pages publica somente os arquivos estáticos do dashboard. O frontend não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada. Erros de conexão e respostas inválidas aparecem no console e no status da conexão.
 
-Para produção, implante um coletor/backend autenticado e protegido, conecte os servidores, configure persistência, notificações externas e monitoramento do próprio coletor. Não exponha a função do navegador como canal público de ingestão. Os nomes, IPs e capacidades devem ser fornecidos pela API e validados contra o ambiente real.
+Para produção, implante um coletor/backend autenticado e protegido e conecte-o ao frontend quando o endpoint e o contrato de acesso estiverem definidos. Configure persistência, notificações externas e monitoramento do próprio coletor. Não exponha a função do navegador como canal público de ingestão.
 
 ## Executar e verificar
 
