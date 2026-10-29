@@ -25,7 +25,7 @@ window.receiveServerTelemetry({
 });
 ```
 
-Para testar com o backend local, mantenha `API_BASE` como `http://127.0.0.1:5000`. Quando for testar na rede das VMs, troque somente essa constante para `http://192.168.56.20:5000`. O backend precisa permitir a origem do dashboard via CORS. GitHub Pages hospeda somente os arquivos estáticos; o navegador precisa conseguir acessar a API diretamente.
+`API_BASE` está configurada para a API oficial `http://192.168.56.20:5000`, acessível somente na rede das VMs. Para testar com o backend local, troque somente essa constante para `http://127.0.0.1:5000`. O backend precisa permitir a origem do dashboard via CORS. GitHub Pages hospeda somente os arquivos estáticos; o navegador precisa conseguir acessar a API diretamente.
 
 O adaptador converte `ip` para `serverId` (usa `serverId`, `id` ou `server_id` como alternativas), `name` para `displayName`, e `cpu_percent`/`memory_percent` para números `cpu`/`memory`. Valores métricos recebidos como texto numérico são convertidos com `Number()`. Cada VM tem capacidade de disco configurada em 20 GB; `disk_percent` é convertido para `diskUsed` e `diskTotal` para manter o contrato usado pelo monitoramento. Leituras com timestamp igual ao último recebido para aquela VM são ignoradas.
 
