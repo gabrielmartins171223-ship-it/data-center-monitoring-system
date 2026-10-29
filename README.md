@@ -11,7 +11,7 @@ Dashboard web responsivo para visualizar telemetria de CPU, memória, disco, dis
 
 ## Telemetria
 
-O dashboard não gera dados simulados. A cada 10 segundos, consulta `GET /metrics?limit=1&server_id=1` na mesma origem da página e envia a leitura mais recente para `window.receiveServerTelemetry`. O endpoint pode retornar diretamente uma leitura, uma lista, ou um objeto com `metrics`/`data` contendo a lista:
+O dashboard não gera dados simulados. A cada 10 segundos, consulta `GET /metricas` na URL definida pela constante `API_BASE`, no início de `app.js`, e envia a leitura mais recente para `window.receiveServerTelemetry`. O endpoint pode retornar diretamente uma leitura, uma lista, ou um objeto com `metrics`/`data` contendo a lista:
 
 ```js
 window.receiveServerTelemetry({
@@ -25,7 +25,7 @@ window.receiveServerTelemetry({
 });
 ```
 
-Para uma API hospedada em outra origem, configure `data-api-base-url` no elemento `<html>` com o host e a porta da API, sem o caminho `/metrics` (por exemplo, `https://api.exemplo.com`). O servidor precisa permitir a origem do dashboard via CORS. O valor vazio usa a origem atual; GitHub Pages não hospeda nem encaminha `/metrics`, então a chamada só funcionará lá se houver uma API/proxy acessível nessa mesma origem ou se a URL base for configurada.
+Para testar com o backend local, mantenha `API_BASE` como `http://127.0.0.1:5000`. Quando for testar na rede das VMs, troque somente essa constante para `http://192.168.56.20:5000`. O backend precisa permitir a origem do dashboard via CORS. GitHub Pages hospeda somente os arquivos estáticos; o navegador precisa conseguir acessar a API diretamente.
 
 O adaptador converte `ip` para `serverId` (usa `serverId`, `id` ou `server_id` como alternativas), `name` para `displayName`, e `cpu_percent`/`memory_percent` para números `cpu`/`memory`. Valores métricos recebidos como texto numérico são convertidos com `Number()`. Cada VM tem capacidade de disco configurada em 20 GB; `disk_percent` é convertido para `diskUsed` e `diskTotal` para manter o contrato usado pelo monitoramento. Leituras com timestamp igual ao último recebido para aquela VM são ignoradas.
 
@@ -33,7 +33,7 @@ CPU, memória e disco geram alerta médio quando atingem 70% e crítico quando u
 
 ## Prontidão para uso real
 
-**Ainda não está apto, sozinho, para monitoramento operacional real.** A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O dashboard consulta o endpoint de métricas, mas não há API/backend nem configuração para hospedá-la neste projeto; o GitHub Pages publica somente os arquivos estáticos do dashboard. O frontend não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada. Erros de conexão e respostas inválidas aparecem no console e no status da conexão.
+**Ainda não está apto, sozinho, para monitoramento operacional real.** A função `window.receiveServerTelemetry` é uma função JavaScript local, não um endpoint de rede, coletor ou mecanismo autenticado. O backend não está incluído neste projeto; o dashboard está preparado para consultar `GET /metricas`, mas as rotas `POST /monitoramento`, `GET /servidores` e `GET /alertas` ainda precisam ser integradas quando os contratos de dados estiverem disponíveis. O GitHub Pages publica somente os arquivos estáticos. O frontend não persiste dados, não envia notificações externas e deixa de monitorar quando a página é fechada. Erros de conexão e respostas inválidas aparecem no console e no status da conexão.
 
 Para produção, implante um coletor/backend autenticado e protegido e conecte-o ao frontend quando o endpoint e o contrato de acesso estiverem definidos. Configure persistência, notificações externas e monitoramento do próprio coletor. Não exponha a função do navegador como canal público de ingestão.
 
