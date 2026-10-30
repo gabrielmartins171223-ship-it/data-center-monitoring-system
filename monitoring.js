@@ -109,7 +109,7 @@
 
 		updateThresholdAlert(serverId, displayName, metric, value) {
 			const key = `${metric}:${serverId}`;
-			const level = value > ALERT_THRESHOLD ? 'critical' : value >= 70 ? 'warning' : null;
+			const level = value >= ALERT_THRESHOLD ? 'critical' : value >= 70 ? 'warning' : null;
 			const currentAlert = this.activeAlerts.get(key);
 			if (currentAlert && currentAlert.level !== level) this.resolveAlert(key);
 			if (level) {
@@ -125,7 +125,7 @@
 					serverId,
 					displayName,
 					title: level === 'critical' ? `${labels[metric][0]} em nível crítico` : `${labels[metric][0]} em nível médio`,
-					detail: `${displayName} está usando ${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de ${labels[metric][0].toLowerCase()}. ${level === 'critical' ? `Limite crítico acima de ${ALERT_THRESHOLD}%.` : 'Atenção entre 70% e 85%.'}`,
+					detail: `${displayName} está usando ${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de ${labels[metric][0].toLowerCase()}. ${level === 'critical' ? `Limite crítico: ${ALERT_THRESHOLD}% ou mais.` : 'Atenção entre 70% e menos de 85%.'}`,
 					icon: labels[metric][1]
 				});
 			} else {

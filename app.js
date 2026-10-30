@@ -12,7 +12,6 @@ const resolveDisplayName = server => {
 const DISK_CAPACITY_PER_SERVER_GB = 20;
 const METRICS_POLL_INTERVAL_MS = 10_000;
 const API_BASE = 'http://127.0.0.1:5000';
-const METRICS_QUERY_MODE = 'single_server';
 const chartColors = { green: '#c6f36b', mint: '#67d6ae', muted: '#7d8a81', grid: 'rgba(134, 150, 139, .13)' };
 const performancePeriods = { 1: 60 * 60 * 1000, 6: 6 * 60 * 60 * 1000, 24: 24 * 60 * 60 * 1000 };
 const performanceHistory = [];
@@ -142,8 +141,8 @@ const updateStorageUsage = (usedCapacity, totalCapacity) => {
 	}
 
 	const usagePercent = (usedCapacity / totalCapacity) * 100;
-	const storageStatus = usagePercent > 85
-		? { level: 'critical', color: '#f17b72', label: 'Crítico: acima de 85%' }
+	const storageStatus = usagePercent >= 85
+		? { level: 'critical', color: '#f17b72', label: 'Crítico: 85% ou mais' }
 		: usagePercent >= 70
 			? { level: 'warning', color: '#f2bb65', label: 'Atenção: 70%' }
 			: { level: 'normal', color: chartColors.green, label: 'Normal' };
@@ -201,7 +200,7 @@ const getServerStatus = server => server.offline
 	? 'Offline'
 	: !server.lastSeenAt
 		? 'Aguardando'
-		: [server.cpu, server.memory, server.disk].some(value => value > 85)
+		: [server.cpu, server.memory, server.disk].some(value => value >= 85)
 		? 'Instável'
 		: [server.cpu, server.memory, server.disk].some(value => value >= 70)
 			? 'Atenção'
@@ -291,7 +290,7 @@ const renderServers = (servers) => {
 		const status = getServerStatus(server);
 		const statusClass = status === 'Offline' ? 'offline' : status === 'Instável' ? 'critical' : status === 'Atenção' ? 'warning' : status === 'Aguardando' ? 'pending' : 'online';
 		const statusIcon = status === 'Offline' ? 'icon-server-offline' : status === 'Instável' || status === 'Atenção' ? 'icon-alert' : status === 'Aguardando' ? 'icon-clock' : 'icon-check-circle';
-		const usageClass = server.cpu > 85 ? 'bad' : server.cpu >= 75 ? 'warn' : '';
+		const usageClass = server.cpu >= 85 ? 'bad' : server.cpu >= 75 ? 'warn' : '';
 		const value = metric => Number.isFinite(server[metric]) ? `${Math.round(server[metric])}%` : '—';
 		const effectiveName = resolveDisplayName(server);
 		return `<tr><td><span class="server-name"><span class="status-dot ${statusClass === 'online' ? '' : statusClass}"></span>${escapeHtml(effectiveName)}</span></td><td><span class="table-status ${statusClass}"><svg aria-hidden="true"><use href="#${statusIcon}"/></svg>${status}</span></td><td><span class="usage"><span class="usage-track"><span class="usage-fill ${usageClass}" style="width:${Number.isFinite(server.cpu) ? server.cpu : 0}%"></span></span><span class="mono">${value('cpu')}</span></span></td><td class="mono">${value('memory')}</td><td class="mono">${value('disk')}</td></tr>`;
@@ -363,35 +362,22 @@ const setApiConnectionSuccess = () => {
 	}
 	if (footnote) footnote.textContent = 'API CONECTADA · AGUARDANDO TELEMETRIA';
 };
-const extractMetrics = payload => {
-	if (Array.isArray(payload)) return payload;
-	if (!payload || typeof payload !== 'object') {
-		throw new TypeError('A resposta da API precisa ser um objeto ou uma lista de leituras.');
-	}
-	if (Array.isArray(payload.metrics)) return payload.metrics;
-	if (Array.isArray(payload.data)) return payload.data;
-	if (payload.data && typeof payload.data === 'object') return extractMetrics(payload.data);
-	return [payload];
-};
-const getMetricsEndpoint = () => {
-	const endpoint = new URL('/metrics', API_BASE);
-	const queryParams = {
-		single_server: { limit: '1', server_id: '1' },
-		multiple_servers: { limit: '10' }
-	}[METRICS_QUERY_MODE];
-	if (!queryParams) throw new RangeError(`Modo de consulta de métricas inválido: ${METRICS_QUERY_MODE}`);
-	Object.entries(queryParams).forEach(([key, value]) => endpoint.searchParams.set(key, value));
-	return endpoint;
+const fetchJson = async path => {
+	const response = await fetch(new URL(path, API_BASE), {
+		headers: { Accept: 'application/json' },
+		cache: 'no-store'
+	});
+	if (!response.ok) throw new Error(`A API respondeu HTTP ${response.status}.`);
+	return response.json();
 };
 const pollServerTelemetry = async () => {
 	try {
-		const response = await fetch(getMetricsEndpoint(), {
-			headers: { Accept: 'application/json' },
-			cache: 'no-store'
-		});
-		if (!response.ok) throw new Error(`A API respondeu HTTP ${response.status}.`);
-		const payload = await response.json();
-		extractMetrics(payload).forEach(telemetry => window.receiveServerTelemetry(telemetry));
+		const servers = await fetchJson('/servidores');
+		for (const server of servers) {
+			const [metric] = await fetchJson(`/metricas?server_id=${encodeURIComponent(server.id)}&limit=1`);
+			if (!metric) continue;
+			window.receiveServerTelemetry({ ...metric, ip: server.ip, name: server.name });
+		}
 		setApiConnectionSuccess();
 	} catch (error) {
 		setApiConnectionError(error);
@@ -437,12 +423,12 @@ const mapBackendTelemetry = telemetry => {
 	if (!telemetry || typeof telemetry !== 'object') {
 		throw new TypeError('A telemetria precisa ser enviada como um objeto.');
 	}
-	const serverIdValue = telemetry.ip ?? telemetry.serverId ?? telemetry.id ?? telemetry.server_id;
+	const serverIdValue = telemetry.server_id ?? telemetry.serverId ?? telemetry.ip ?? telemetry.id;
 	const serverId = typeof serverIdValue === 'string' || typeof serverIdValue === 'number'
 		? String(serverIdValue).trim()
 		: '';
 	if (!serverId) {
-		throw new TypeError('A telemetria precisa incluir ip, serverId ou id para identificar o servidor.');
+		throw new TypeError('A telemetria precisa incluir server_id, serverId, ip ou id para identificar o servidor.');
 	}
 	const cpu = toTelemetryNumber(telemetry.cpu_percent ?? telemetry.cpu, 'CPU');
 	const memory = toTelemetryNumber(telemetry.memory_percent ?? telemetry.memory, 'Memória');
@@ -452,12 +438,14 @@ const mapBackendTelemetry = telemetry => {
 	const diskPercent = telemetry.disk_percent === undefined
 		? null
 		: toTelemetryNumber(telemetry.disk_percent, 'disk_percent');
-	const diskTotal = telemetry.diskTotal === undefined
-		? DISK_CAPACITY_PER_SERVER_GB
-		: toTelemetryNumber(telemetry.diskTotal, 'diskTotal');
-	const diskUsed = telemetry.diskUsed === undefined && diskPercent !== null
-		? diskTotal * diskPercent / 100
-		: toTelemetryNumber(telemetry.diskUsed, 'diskUsed');
+	const diskTotalRaw = telemetry.disk_total_gb ?? telemetry.diskTotal;
+	const diskUsedRaw = telemetry.disk_used_gb ?? telemetry.diskUsed;
+	const diskTotal = diskTotalRaw == null ? DISK_CAPACITY_PER_SERVER_GB : toTelemetryNumber(diskTotalRaw, 'diskTotal');
+	const diskUsed = diskUsedRaw != null
+		? toTelemetryNumber(diskUsedRaw, 'diskUsed')
+		: diskPercent !== null
+			? diskTotal * diskPercent / 100
+			: toTelemetryNumber(diskUsedRaw, 'diskUsed');
 	if (diskPercent !== null && (diskPercent < 0 || diskPercent > 100)) {
 		throw new RangeError('disk_percent precisa estar entre 0 e 100%.');
 	}
