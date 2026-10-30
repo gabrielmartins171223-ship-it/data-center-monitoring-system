@@ -11,7 +11,7 @@ const resolveDisplayName = server => {
 };
 const DISK_CAPACITY_PER_SERVER_GB = 20;
 const METRICS_POLL_INTERVAL_MS = 10_000;
-const API_BASE = 'http://192.168.56.20:5000';
+const API_BASE = 'http://127.0.0.1:5000';
 const METRICS_QUERY_MODE = 'single_server';
 const chartColors = { green: '#c6f36b', mint: '#67d6ae', muted: '#7d8a81', grid: 'rgba(134, 150, 139, .13)' };
 const performancePeriods = { 1: 60 * 60 * 1000, 6: 6 * 60 * 60 * 1000, 24: 24 * 60 * 60 * 1000 };
